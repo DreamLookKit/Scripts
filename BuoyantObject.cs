@@ -38,11 +38,10 @@ public class BuoyantObject : MonoBehaviour{
     //Physical forse always apply in FixedUpdate
     private void FixedUpdate(){
         if (isInsideWater){
-            // ФИКС АРХИТЕКТУРЫ: Расчет точки плавучести для бочек и игрока
             float waterSurfaceY = (WaterScript != null) ? WaterScript.SurfaceY : 0f;
             float immersionDepth = waterSurfaceY - GetObjectBottom();
             if (immersionDepth > 0){
-                // Применение силы Архимеда
+                float massMultiplier = (pc != null) ? 1f : Mathf.Max(rb.mass, 2f);
                 float dynamicBuoyancy = Mathf.Clamp(buoyancyForce * massMultiplier * immersionDepth, 0f, maxBuoyancyLimit);
                 rb.AddForce(Vector3.up * dynamicBuoyancy, ForceMode.Acceleration);
             }
@@ -67,5 +66,11 @@ public class BuoyantObject : MonoBehaviour{
             rb.angularDamping = originalAngularDrag;
             
         }
+    }
+    private float GetObjectBottom(){
+        if (pc != null && pc.PlayerCollider != null){
+            return transform.position.y - (pc.PlayerCollider.height / 2f);
+        }
+        return transform.position.y - (transform.localScale.y / 2f);
     }
 }
