@@ -1,6 +1,10 @@
 using UnityEngine;
 using UnityEngine.InputSystem; 
 
+[RequireComponent(typeof(Rigidbody))]
+[RequireComponent(typeof(CapsuleCollider))]
+
+
 public class PlayerController : MonoBehaviour{
     [Header("Movement Settings")]
     [SerializeField] private float walkSpeed = 7f;
@@ -11,6 +15,8 @@ public class PlayerController : MonoBehaviour{
     [SerializeField] private float standHeight = 2f;        // Standart player height
     [SerializeField] private float crouchHeight = 1.0f;        // Crouch player height
     [SerializeField] private float crouchSmoothTime = 8f;   // Smooth camera lowering speed
+    [Range(0.5f, 1.0f)]
+    [SerializeField] private float cameraHeightRatio = 0.85f;   // Eye level (percentage of body height)
     [Header("Jump & Physics Settings")]
     [SerializeField] private float jumpForce = 6f;
     [SerializeField] private float groundCheckDistance = 1.1f;
@@ -66,13 +72,14 @@ public class PlayerController : MonoBehaviour{
         rb = GetComponent<Rigidbody>();
         capsuleCollider = GetComponent<CapsuleCollider>();  //Search our collider
         buoyantScript = GetComponent<BuoyantObject>();
+        rb.interpolation = RigidbodyInterpolation.Interpolate;
+        
         // Automatically find the camera among child objects if it wasn't dragged into the Inspector
         if(playerCamera == null){
             Camera childCamera = GetComponentInChildren<Camera>();
             if(childCamera != null) playerCamera = childCamera.transform;
             // Lock the mouse cursor to the center of the screen so it doesn't leave the game window
         }
-        currentCameraY = playerCamera.localPosition.y;  // Note the camera's starting height
         Cursor.lockState = CursorLockMode.Locked;
         // Hide him
         Cursor.visible = false;
@@ -107,8 +114,6 @@ public class PlayerController : MonoBehaviour{
         Vector3 moveDirection = (transform.forward * inputVector.y + transform.right * inputVector.x).normalized;
         // Calculate speed (Sprint, Crouch or Walk
         float currentSpeed = walkSpeed;
-        float targetVelocityX = moveDirection.x * currentSpeed;
-        float targetVelocityZ = moveDirection.z * currentSpeed;
         float targetVelocityY = rb.linearVelocity.y;
         if(IsInWater()){
             currentSpeed = walkSpeed * 0.7f; 
@@ -131,20 +136,24 @@ public class PlayerController : MonoBehaviour{
         else if(SprintAction.IsPressed())
             currentSpeed = sprintSpeed;
         // Apply updated speeds to horizontal axes
-        if(!IsInWater()){
-            targetVelocityX = moveDirection.x * currentSpeed;
-            targetVelocityZ = moveDirection.z * currentSpeed;
-        }
+        float targetVelocityX = moveDirection.x * currentSpeed;
+        float targetVelocityZ = moveDirection.z * currentSpeed;
         rb.linearVelocity = new Vector3(targetVelocityX, targetVelocityY, targetVelocityZ);
     }
     private void HandleCrouch(){
         float targetHeight = CrouchAction.IsPressed() ? crouchHeight : standHeight;
-        // Smoothly update collider height
-        capsuleCollider.height = Mathf.Lerp(capsuleCollider.height, targetHeight, Time.deltaTime * crouchSmoothTime);
-        // Adjust camera position dynamically based on collider height
+        // Frame-independent smoothing step
+        float lerpFactor = 1f - Mathf.Exp(-crouchSmoothTime * Time.deltaTime);
+        float currentHeight = Mathf.Lerp(capsuleCollider.height, targetHeight, lerpFactor);
+        capsuleCollider.height = currentHeight;
+        // 2. FIX: Shift the collider center so the feet always stay on the ground!
+        // The formula calculates half the difference between the standard height and the current height.
+        Vector3 colCenter = capsuleCollider.center;
+        colCenter.y = currentHeight / 2f;
+        capsuleCollider.center = colCenter;
+        // 3. Dynamic camera position (now aligned with the true top of the collider)
         Vector3 camPos = playerCamera.localPosition;
-        float targetCamY = targetHeight * 0.8f; // Head position approximation
-        camPos.y = Mathf.Lerp(camPos.y, targetCamY, Time.deltaTime * crouchSmoothTime);
+        camPos.y = currentHeight * cameraHeightRatio;
         playerCamera.localPosition = camPos;
     }
     private bool IsInWater(){
