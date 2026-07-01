@@ -37,34 +37,14 @@ public class BuoyantObject : MonoBehaviour{
     }
     //Physical forse always apply in FixedUpdate
     private void FixedUpdate(){
-        // We are trying to quickly locate the player controller on this same object
-        bool isPlayer = pc != null && pc.PlayerCollider != null;
-        if (isInsideWater && rb.mass < 100f && !isPlayer){
-            // 1. Dynamically calculate the displacement of the center depending on the mass of the object.
-            // The heavier the object, the closer the point is to the center (0f). The lighter the closer to the bottom (-0.5f).
-            // The Mathf.Clamp function limits the values ​​so that the point does not fly below the bottom or above the center.
-            float massFactor = Mathf.Clamp(rb.mass * 0.1f, 0f, 0.9f);
-            float dynamicOffset = -0.5f + massFactor;   //point of buoyancy (плавучесть)
-            // 2. Find the world Y-coordinate of this dynamic point
-            float objectY = transform.position.y + (transform.localScale.y * dynamicOffset);
-            // 3. We take the real Y of the water surface from the flood script (исправлено на заглавную букву)
+        if (isInsideWater){
+            // ФИКС АРХИТЕКТУРЫ: Расчет точки плавучести для бочек и игрока
             float waterSurfaceY = (WaterScript != null) ? WaterScript.SurfaceY : 0f;
-            // 4. We calculate the immersion depth of our dynamic point
-            float immersionDepth = waterSurfaceY - objectY;
-            // 5. If the point goes under water - application of the Archimedes force
+            float immersionDepth = waterSurfaceY - GetObjectBottom();
             if (immersionDepth > 0){
-                // Multiply the force by rb.mass so that physics takes into account the weight of the object, 
-                // and add ForceMode.Acceleration for smoothness
-                float dynamicBuoyancy = buoyancyForce * Mathf.Max(rb.mass, 2f) * immersionDepth;
-                // Fix extremal pushed objects
-                dynamicBuoyancy = Mathf.Clamp(dynamicBuoyancy, 0f, maxBuoyancyLimit);
-                // Push out the object
+                // Применение силы Архимеда
+                float dynamicBuoyancy = Mathf.Clamp(buoyancyForce * massMultiplier * immersionDepth, 0f, maxBuoyancyLimit);
                 rb.AddForce(Vector3.up * dynamicBuoyancy, ForceMode.Acceleration);
-
-                // 3. SIDE-ENTRY FIX: Additionally dampen vertical velocity in water (fluid viscosity effect)
-                // The faster the object tries to move up or down in the water, the more strongly the water slows it down.
-                float dampForce = -rb.linearVelocity.y * waterDrag;
-                rb.AddForce(Vector3.up * dampForce, ForceMode.Acceleration);
             }
         }
     }
