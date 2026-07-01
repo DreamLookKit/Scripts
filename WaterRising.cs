@@ -13,20 +13,19 @@ public class WaterRising : MonoBehaviour{
         get => maxScaleY;
         set => maxScaleY = Mathf.Max(minScaleY, value); // Blocking change max less min
     }
-    void Update(){
+    void FixedUpdate(){
         // Calculate how much the scale should changed in this frame
-        float scaleChange = modificationSpeed * Time.deltaTime;
-        // Checking the game phase via Singletone
-        switch(GameManager.Instance, GameManager.Instance?.currentState)
-        {
-            case(null, _):
-                break; // If GameManagerInstance not yet realize in GameManager
-            case(_, GameManager.GameState.Flood):
-                GrowWaterVolume(scaleChange);
-                break;
-            case(_, GameManager.GameState.RoundEnd):
-                DeclineWaterVolume(scaleChange);
-                break;
+        float scaleChange = modificationSpeed * Time.fixedDeltaTime;
+        // Safe game phase check via a singleton
+        if (GameManager.Instance != null){
+            switch (GameManager.Instance.currentState){
+                case GameManager.GameState.Flood:
+                    GrowWaterVolume(scaleChange);
+                    break;
+                case GameManager.GameState.RoundEnd:
+                    DeclineWaterVolume(scaleChange);
+                    break;
+            }
         }
         
     }
