@@ -19,7 +19,7 @@ public partial class PlayerController : MonoBehaviour{
     [SerializeField] private float cameraHeightRatio = 0.85f;   // Eye level (percentage of body height)
     [Header("Jump & Physics Settings")]
     [SerializeField] private float jumpForce = 6f;
-    [SerializeField] private float groundCheckDistance = 0.1f;
+    [SerializeField] private float groundCheckDistance = 0.2f;
     [SerializeField] private LayerMask groundLayer;
     [Header("Water Control Settings")]
     [SerializeField] private float waterVerticalSpeed = 5f;
@@ -95,61 +95,69 @@ public partial class PlayerController : MonoBehaviour{
             cameraRotationX = Mathf.Clamp(cameraRotationX - mouseDelta.y, -85f, 85f); // Насколько сдвинуть камеру, отняв координапты мыши за текущий кадр, ограничив 85 градусами
             playerCamera.localRotation = Quaternion.Euler(cameraRotationX, 0f, 0f);
         }
-        isGrounded = Physics.Raycast(GetObjectBottom(), Vector3.down, groundCheckDistance, groundLayer);
+        isGrounded = Physics.Raycast(GetObjectBottom(), Vector3.down, groundCheckDistance, groundLayer, QueryTriggerInteraction.Ignore);
+        Debug.DrawRay(GetObjectBottom(), Vector3.down * groundCheckDistance, isGrounded ? Color.green : Color.red);
         // Механика прыжка на суше
-        if(JumpAction.WasPressedThisFrame() && isGrounded && !IsInWater())
+        if(JumpAction.WasPressedThisFrame() && isGrounded && !IsInWater()){
             rb.AddForce(Vector3.up * jumpForce, ForceMode.VelocityChange);
+        }
         // Механика прыжка из воды
         if(JumpAction.WasPressedThisFrame() && IsInWater())
             rb.AddForce(Vector3.up * (jumpForce * 1.2f), ForceMode.VelocityChange);
         // Логика изменения высоты коллайдера и камеры (только если мы НЕ в воде)
         if(!IsInWater())
-            HandleCrouch();
+            HandleCrouch(); 
     }
     // Физическая сила всегда применяется в FixedUpdate (50 раз всекунду)
-    private void FixedUpdate(){
+    private void FixedUpdate()
+    {
         // Считываем чистый вектор WASD
         Vector2 inputVector = MoveAction.ReadValue<Vector2>();
-        // Мы вычисляем физическое направление движения
+        // Вычисляем физическое направление движения
         Vector3 moveDirection = (transform.forward * inputVector.y + transform.right * inputVector.x).normalized;
-        // Расчет скорости (Спринт, Присед или Ходьба)
+        // Расчет горизонтальной скорости (Спринт, Присед или Ходьба)
         float currentSpeed = walkSpeed;
+        // Важно: по умолчанию оставляем ту скорость, которую посчитал сам PhysX (гравитация, выталкивание)
         float targetVelocityY = rb.linearVelocity.y;
-        if(IsInWater()){
-            currentSpeed = walkSpeed * 0.5f; 
-            // Перенесли чтение высоты сюда, чтобы она была доступна ВСЕМ условиям ниже
+        if (IsInWater())
+        {
+            currentSpeed = walkSpeed * 0.5f; // Ограничили скорость в воде вполовину
             float waterSurfaceY = 0f;
-            // Определяем текущую координату поверхности воды
-            if(buoyantScript != null && buoyantScript.WaterScript != null)
+            if (buoyantScript != null && buoyantScript.WaterScript != null)
                 waterSurfaceY = buoyantScript.WaterScript.SurfaceY;
-            if(CrouchAction.IsPressed()) 
+            if (CrouchAction.IsPressed()) 
                 targetVelocityY = -waterVerticalSpeed; // Нажата кнопка приседа — активно погружаемся на глубину
-            else if(JumpAction.IsPressed()){
-                 if (transform.position.y < (waterSurfaceY - 0.2f)){
+            else if (JumpAction.IsPressed())
+            {
+                if (transform.position.y < (waterSurfaceY - 0.2f))
                     targetVelocityY = waterVerticalSpeed; // Нажат пробел и мы глубоко — плывем вверх (всплываем)
-                 }else targetVelocityY = rb.linearVelocity.y; // Мы у самого края воды — отключаем силу, просто дрейфуем
+                else 
+                    targetVelocityY = rb.linearVelocity.y; // Мы у самого края воды — отключаем силу, просто дрейфуем
             }
         }
-        else if(CrouchAction.IsPressed())
+        else if(CrouchAction.ReadValue<float>() > 0.5f)
             currentSpeed = crouchSpeed;
-        else if(SprintAction.IsPressed())
+        else if (SprintAction.IsPressed())
             currentSpeed = sprintSpeed;
-        // Применяем обновленные скорости к горизонтальным осям
+        // Применяем обновленные скорости СТРОГО к горизонтальным осям
         float targetVelocityX = moveDirection.x * currentSpeed;
         float targetVelocityZ = moveDirection.z * currentSpeed;
+        // ВНИМАНИЕ: На суше targetVelocityY равен текущему честному rb.linearVelocity.y, 
+        // поэтому этот код больше НЕ БЛОКИРУЕТ выталкивание земли и не дает проваливаться!
         rb.linearVelocity = new Vector3(targetVelocityX, targetVelocityY, targetVelocityZ);
     }
     private void HandleCrouch(){
-        float targetHeight = CrouchAction.IsPressed() ? crouchHeight : standHeight;
+        bool isCrouchPressed = CrouchAction.ReadValue<float>() > 0.5f;
+        float targetHeight = isCrouchPressed ? crouchHeight : standHeight;
         // Независимый от кадров шаг сглаживания
         float lerpFactor = 1f - Mathf.Exp(-crouchSmoothTime * Time.deltaTime);
         float currentHeight = Mathf.Lerp(capsuleCollider.height, targetHeight, lerpFactor);
         capsuleCollider.height = currentHeight;
         // 2. ФИКС: Сдвигаем центр коллайдера, чтобы ноги всегда оставались на земле!
         // Формула вычисляет половину разницы между стандартной высотой и текущей высотой.
-        Vector3 colCenter = capsuleCollider.center;
+        /* Vector3 colCenter = capsuleCollider.center;
         colCenter.y = currentHeight / 2f;
-        capsuleCollider.center = colCenter;
+        capsuleCollider.center = colCenter; */
         // 3. Динамическое положение камеры (теперь выровнено по настоящему верху коллайдера)
         Vector3 camPos = playerCamera.localPosition;
         camPos.y = currentHeight * cameraHeightRatio;
