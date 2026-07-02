@@ -96,7 +96,7 @@ public partial class PlayerController : MonoBehaviour{
             playerCamera.localRotation = Quaternion.Euler(cameraRotationX, 0f, 0f);
         }
         isGrounded = Physics.Raycast(GetObjectBottom(), Vector3.down, groundCheckDistance, groundLayer, QueryTriggerInteraction.Ignore);
-        Debug.DrawRay(GetObjectBottom(), Vector3.down * groundCheckDistance, isGrounded ? Color.green : Color.red);
+        //Debug.DrawRay(GetObjectBottom(), Vector3.down * groundCheckDistance, isGrounded ? Color.green : Color.red);
         // Механика прыжка на суше
         if(JumpAction.WasPressedThisFrame() && isGrounded && !IsInWater()){
             rb.AddForce(Vector3.up * jumpForce, ForceMode.VelocityChange);
@@ -135,7 +135,7 @@ public partial class PlayerController : MonoBehaviour{
                     targetVelocityY = rb.linearVelocity.y; // Мы у самого края воды — отключаем силу, просто дрейфуем
             }
         }
-        else if(CrouchAction.ReadValue<float>() > 0.5f)
+        else if(CrouchAction.IsPressed())
             currentSpeed = crouchSpeed;
         else if (SprintAction.IsPressed())
             currentSpeed = sprintSpeed;
@@ -147,18 +147,12 @@ public partial class PlayerController : MonoBehaviour{
         rb.linearVelocity = new Vector3(targetVelocityX, targetVelocityY, targetVelocityZ);
     }
     private void HandleCrouch(){
-        bool isCrouchPressed = CrouchAction.ReadValue<float>() > 0.5f;
-        float targetHeight = isCrouchPressed ? crouchHeight : standHeight;
+        float targetHeight = CrouchAction.IsPressed() ? crouchHeight : standHeight;
         // Независимый от кадров шаг сглаживания
         float lerpFactor = 1f - Mathf.Exp(-crouchSmoothTime * Time.deltaTime);
         float currentHeight = Mathf.Lerp(capsuleCollider.height, targetHeight, lerpFactor);
         capsuleCollider.height = currentHeight;
-        // 2. ФИКС: Сдвигаем центр коллайдера, чтобы ноги всегда оставались на земле!
-        // Формула вычисляет половину разницы между стандартной высотой и текущей высотой.
-        /* Vector3 colCenter = capsuleCollider.center;
-        colCenter.y = currentHeight / 2f;
-        capsuleCollider.center = colCenter; */
-        // 3. Динамическое положение камеры (теперь выровнено по настоящему верху коллайдера)
+        // 2. Динамическое положение камеры (теперь выровнено по настоящему верху коллайдера)
         Vector3 camPos = playerCamera.localPosition;
         camPos.y = currentHeight * cameraHeightRatio;
         playerCamera.localPosition = camPos;
