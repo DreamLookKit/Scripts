@@ -320,7 +320,7 @@ MonoBehaviour:
   crouchSmoothTime: 8
   cameraHeightRatio: 0.85
   jumpForce: 6
-  groundCheckDistance: 1.1
+  groundCheckDistance: 0.2
   groundLayer:
     serializedVersion: 2
     m_Bits: 8

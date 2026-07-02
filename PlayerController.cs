@@ -5,7 +5,7 @@ using UnityEngine.InputSystem;
 [RequireComponent(typeof(CapsuleCollider))]
 
 
-public class PlayerController : MonoBehaviour{
+public partial class PlayerController : MonoBehaviour{
     [Header("Movement Settings")]
     [SerializeField] private float walkSpeed = 7f;
     [SerializeField] private float sprintSpeed = 11f;
@@ -19,7 +19,7 @@ public class PlayerController : MonoBehaviour{
     [SerializeField] private float cameraHeightRatio = 0.85f;   // Eye level (percentage of body height)
     [Header("Jump & Physics Settings")]
     [SerializeField] private float jumpForce = 6f;
-    [SerializeField] private float groundCheckDistance = 1.1f;
+    [SerializeField] private float groundCheckDistance = 0.1f;
     [SerializeField] private LayerMask groundLayer;
     [Header("Water Control Settings")]
     [SerializeField] private float waterVerticalSpeed = 5f;
@@ -95,7 +95,7 @@ public class PlayerController : MonoBehaviour{
             cameraRotationX = Mathf.Clamp(cameraRotationX - mouseDelta.y, -85f, 85f); // Насколько сдвинуть камеру, отняв координапты мыши за текущий кадр, ограничив 85 градусами
             playerCamera.localRotation = Quaternion.Euler(cameraRotationX, 0f, 0f);
         }
-        isGrounded = Physics.Raycast(transform.position, Vector3.down, groundCheckDistance, groundLayer);
+        isGrounded = Physics.Raycast(GetObjectBottom(), Vector3.down, groundCheckDistance, groundLayer);
         // Механика прыжка на суше
         if(JumpAction.WasPressedThisFrame() && isGrounded && !IsInWater())
             rb.AddForce(Vector3.up * jumpForce, ForceMode.VelocityChange);
@@ -154,9 +154,5 @@ public class PlayerController : MonoBehaviour{
         Vector3 camPos = playerCamera.localPosition;
         camPos.y = currentHeight * cameraHeightRatio;
         playerCamera.localPosition = camPos;
-    }
-    private bool IsInWater(){
-        // Безопасная проверка ссылки на скрипт воды
-        return buoyantScript != null && buoyantScript.IsInWater;
     }
 }
