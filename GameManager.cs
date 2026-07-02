@@ -13,7 +13,7 @@ public class GameManager : MonoBehaviour{
     // Текущее состояние игры
     public GameState currentState = GameState.Building;
     public float timer = 10f; // Таймер на 10 секунд (для тестов) на постройку лодки
-    void Awake(){
+    private void Awake(){
         // Кастомный синглтон: этот объект будет доступен для всех остальных скриптов
         if(Instance == null){
             Instance = this;
@@ -21,7 +21,8 @@ public class GameManager : MonoBehaviour{
         }else
             Destroy(gameObject);
     }
-    void Update(){
+    // Графика и Логика (Привязана к FPS: 60, 100, 144 - неважно)
+    private void Update(){
         // Метод Update вызывается каждый кадр. Уменьшаем таймер
         if (timer > 0){
             timer -= Time.deltaTime; // Time.deltaTime - это задержка между кадрами
@@ -29,7 +30,7 @@ public class GameManager : MonoBehaviour{
         else
             AdvancePhase(); // Таймер закончился, переходим к следующей фазе
     }
-    void AdvancePhase(){
+    private void AdvancePhase(){
         switch (currentState){
             case GameState.Building:
                 currentState = GameState.Flood;
@@ -48,13 +49,13 @@ public class GameManager : MonoBehaviour{
                 break;      
         }
     }
-    void StartFlooding(){
+    private void StartFlooding(){
         Debug.Log("Water is rising!"); 
     }
-    void StartBattle(){
+    private void StartBattle(){
         Debug.Log("Battle started!"); 
     }
-    void EndRound(){
+    private void EndRound(){
         Debug.Log("Round ended! Cleaning up..."); 
     }
 }

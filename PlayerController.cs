@@ -83,6 +83,7 @@ public class PlayerController : MonoBehaviour{
         // Скрываем его
         Cursor.visible = false;
     }
+    // Графика и Логика (Привязана к FPS: 60, 100, 144 - неважно)
     private void Update(){
         if(Mouse.current != null)
         {
@@ -106,6 +107,7 @@ public class PlayerController : MonoBehaviour{
         if(!IsInWater())
             HandleCrouch();
     }
+    // Физическая сила всегда применяется в FixedUpdate (50 раз всекунду)
     private void FixedUpdate(){
         // Считываем чистый вектор WASD
         Vector2 inputVector = MoveAction.ReadValue<Vector2>();

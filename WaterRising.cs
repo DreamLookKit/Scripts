@@ -13,7 +13,8 @@ public class WaterRising : MonoBehaviour{
         get => maxScaleY;
         set => maxScaleY = Mathf.Max(minScaleY, value); // Блокировка изменения максимума, если он меньше минимума
     }
-    void FixedUpdate(){
+    // Физическая сила всегда применяется в FixedUpdate (50 раз всекунду)
+    private void FixedUpdate(){
         // Вычисляем, насколько должен измениться масштаб в этом кадре
         float scaleChange = modificationSpeed * Time.fixedDeltaTime;
         // Безопасная проверка фазы игры через синглтон

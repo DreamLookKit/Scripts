@@ -31,11 +31,10 @@ public class BuoyantObject : MonoBehaviour{
         originalAngularDrag = rb.angularDamping;
         // АВТОПОИСК ВОДЫ: Так как мы префаб и не можем видеть сцену заранее,
         // мы находим воду сами в самую первую миллисекунду после спавна!
-        if (WaterScript == null){
+        if (WaterScript == null)
             WaterScript = Object.FindAnyObjectByType<WaterRising>();
-        }
     }
-    // Физическая сила всегда применяется в FixedUpdate
+    // Физическая сила всегда применяется в FixedUpdate (50 раз всекунду)
     private void FixedUpdate(){
         if (isInsideWater){
             float waterSurfaceY = (WaterScript != null) ? WaterScript.SurfaceY : 0f;
@@ -67,10 +66,11 @@ public class BuoyantObject : MonoBehaviour{
             
         }
     }
+    //Этот метод находит самую нижнюю точку хитбокса (коллайдера) объекта в игровом мире
     private float GetObjectBottom(){
-        if (pc != null && pc.PlayerCollider != null){
-            return transform.position.y - (pc.PlayerCollider.height / 2f);
+        if (pc != null && pc.PlayerCollider != null){   // Это коллайдер игрока?
+            return transform.position.y - (pc.PlayerCollider.height / 2f);  // Рассчитываем низ игрока (ноги)
         }
-        return transform.position.y - (transform.localScale.y / 2f);
+        return transform.position.y - (transform.localScale.y / 2f);    // Рассчитываем низ предмета (например, бочки)
     }
 }
