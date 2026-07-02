@@ -2,22 +2,22 @@ using UnityEngine;
 
 public class PlayerSpawner : MonoBehaviour{
     [Header("Spawn settings")]
-    [SerializeField] private GameObject playerPrefab;  // Prefab your player
-    [SerializeField] private Transform spawnPoint;     // Spawn your player
+    [SerializeField] private GameObject playerPrefab;  // Прераб вашего игрока
+    [SerializeField] private Transform spawnPoint;     // Точка спавна вашего игрока
     private GameObject currentInstance;
     private void Awake(){
-        SpawnPlayer();  // Spawn player when scene are appear
+        SpawnPlayer();  // Спавним игрока при появлении сцены
     }
     public void SpawnPlayer(){
-        // We check whether we forgot to drag the objects in the Inspector
+        // Проверяем, не забыли ли мы перетащить объекты в Инспекторе
         if(playerPrefab == null || spawnPoint == null){
             Debug.LogError("Player: Prefab or SpawnPoint not assigned in Spawner!");
             return;
         }
-        // If a copy of the player was already in the scene (for future respawning), remove the old one
+        // Если копия игрока уже была на сцене (для будущих возрождений), удаляем старую
         if(currentInstance != null)
             Destroy(currentInstance);
-        // Create the player from the prefab at the connection point with the required rotation
+        // Создаем игрока из префаба в точке подключения с требуемым поворотом
         currentInstance = Instantiate(playerPrefab, spawnPoint.position, spawnPoint.rotation);
         Debug.Log("Player has appear");
     }

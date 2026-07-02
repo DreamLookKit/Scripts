@@ -1,22 +1,22 @@
 using UnityEngine;
 
 public class WaterRising : MonoBehaviour{
-    [SerializeField] private float modificationSpeed = 0.5f; // How fast the volume grows
-    [SerializeField] private float maxScaleY = 5.0f; // Max water thickness/height
-    [SerializeField] private float minScaleY = 1.0f; // Min water thickness/height
-    [SerializeField] private float declineSpeedMultiplier = 3f; // Multiplier decline water level
-    // This property returns the exact top point of the water object in the world.
+    [SerializeField] private float modificationSpeed = 0.5f; // Как быстро растет объем
+    [SerializeField] private float maxScaleY = 5.0f; // Максимальная толщина/высота воды
+    [SerializeField] private float minScaleY = 1.0f; // Минимальная толщина/высота воды
+    [SerializeField] private float declineSpeedMultiplier = 3f; // Множитель скорости убывания уровня воды
+    // Это свойство возвращает точную верхнюю точку объекта воды в мире.
     public float SurfaceY => transform.position.y + (transform.localScale.y / 2f);
-    // Public property for safety change maxScaleY from other scripts
+    // Публичное свойство для безопасного изменения maxScaleY из других скриптов
     public float MaxScaleY 
     {
         get => maxScaleY;
-        set => maxScaleY = Mathf.Max(minScaleY, value); // Blocking change max less min
+        set => maxScaleY = Mathf.Max(minScaleY, value); // Блокировка изменения максимума, если он меньше минимума
     }
     void FixedUpdate(){
-        // Calculate how much the scale should changed in this frame
+        // Вычисляем, насколько должен измениться масштаб в этом кадре
         float scaleChange = modificationSpeed * Time.fixedDeltaTime;
-        // Safe game phase check via a singleton
+        // Безопасная проверка фазы игры через синглтон
         if (GameManager.Instance != null){
             switch (GameManager.Instance.currentState){
                 case GameManager.GameState.Flood:
@@ -26,32 +26,31 @@ public class WaterRising : MonoBehaviour{
                     DeclineWaterVolume(scaleChange);
                     break;
             }
-        }
-        
+        } 
     }
     private void GrowWaterVolume(float scaleChange){
-        // Checking if the water thickness is still below the max limit
+        // Проверяем, находится ли толщина воды все еще ниже максимального предела
         if(transform.localScale.y < maxScaleY){
-            // 1. Calculate how much the scale shoulkd increase in this frame
+            // 1. Вычисляем, насколько должен увеличиться масштаб в этом кадре
             // float scaleChange = modificationSpeed * Time.deltaTime;
-            // 2. Increase the scale along the Y axis (streaching the volume)
+            // 2. Увеличиваем масштаб по оси Y (растягиваем объем)
             transform.localScale += new Vector3(0, scaleChange, 0);
-            // 3. Move the object up by half of the scale change.
-            // This anchors the bottom of the cube and makes it grow only upwards.
+            // 3. Перемещаем объект вверх на половину изменения масштаба.
+            // Это закрепляет нижнюю часть куба и заставляет его расти только вверх.
             transform.position += new Vector3(0, scaleChange / 2f, 0);
         }
     }
     private void DeclineWaterVolume(float scaleChange){
-        // Checking if the water thickness is still upward the min limit
+        // Проверяем, находится ли толщина воды все еще выше минимального предела
         if(transform.localScale.y > minScaleY){
-            // 1. Calculate how much the scale shoulkd decrease in this frame
+            // 1. Вычисляем, насколько должен уменьшиться масштаб в этом кадре
             // float scaleChange = modificationSpeed * Time.deltaTime;
-            // 2. Decrease the scale along the Y axis (narrowing the volume)
+            // 2. Уменьшаем масштаб по оси Y (сужаем объем)
             transform.localScale -= new Vector3(0, scaleChange * declineSpeedMultiplier, 0);
-            // 3. Move the object up by half of the scale change.
-            // This anchors the bottom of the cube and makes it decline only downwards.
+            // 3. Перемещаем объект вниз на половину изменения масштаба.
+            // Это закрепляет нижнюю часть куба и заставляет его уменьшаться только вниз.
             transform.position -= new Vector3(0, (scaleChange * declineSpeedMultiplier) / 2f, 0);
-            // If water scale accidentaly fall down below min level, fixate him tough
+            // Если масштаб воды случайно упал ниже минимального уровня, жестко фиксируем его
             if(transform.localScale.y < minScaleY)
             transform.localScale = new Vector3(transform.localScale.x, minScaleY, transform.localScale.z);
         }

@@ -1,20 +1,20 @@
 using UnityEngine;
 
 public class GameManager : MonoBehaviour{
-    // Singleton instance
+    // Экземпляр синглтона (одиночки)
     public static GameManager Instance {get; private set;}
-    // List of Game Phases
+    // Список игровых фаз
     public enum GameState{
-        Building, // Phase 1: Build a boat (Ex: 2 min)
-        Flood,    // Phase 2: Flood the area
-        Battle,   // Phase 3: Battle with bots
-        RoundEnd  // Phase 4: Add up score and cleanup the area
+        Building, // Фаза 1: Постройка лодки (Например: 2 минуты)
+        Flood,    // Фаза 2: Затопление локации
+        Battle,   // Фаза 3: Битва с ботами
+        RoundEnd  // Фаза 4: Подсчет очков и очистка локации
     }
-    // Current game state
+    // Текущее состояние игры
     public GameState currentState = GameState.Building;
-    public float timer = 10f; // 10 sec (for test) timer for building boat
+    public float timer = 10f; // Таймер на 10 секунд (для тестов) на постройку лодки
     void Awake(){
-        //Custom singlton: that object will be avaliable for all
+        // Кастомный синглтон: этот объект будет доступен для всех остальных скриптов
         if(Instance == null){
             Instance = this;
             DontDestroyOnLoad(gameObject);
@@ -22,29 +22,28 @@ public class GameManager : MonoBehaviour{
             Destroy(gameObject);
     }
     void Update(){
-        // Method Update call by each frame. Decrease timer
+        // Метод Update вызывается каждый кадр. Уменьшаем таймер
         if (timer > 0){
-            timer -= Time.deltaTime; // Time.deltaTime - its a delay between frames
+            timer -= Time.deltaTime; // Time.deltaTime - это задержка между кадрами
         }
         else
-            AdvancePhase(); // Timer was ended, move to next phase
+            AdvancePhase(); // Таймер закончился, переходим к следующей фазе
     }
-
     void AdvancePhase(){
         switch (currentState){
             case GameState.Building:
                 currentState = GameState.Flood;
-                timer = 30f; // 30 (for test) sec to flood
+                timer = 30f; // 30 секунд (для тестов) на затопление
                 StartFlooding();
                 break;
             case GameState.Flood:
                 currentState = GameState.Battle;
-                timer = 99999f; // 99999 (for test) sec to battle with bots
+                timer = 99999f; // 99999 секунд (для тестов) на битву с ботами
                 StartBattle();
                 break;
             case GameState.Battle:
                 currentState = GameState.RoundEnd;
-                timer = 20f; // 20 sec to add up score and cleanup the area
+                timer = 20f; // 20 секунд на подсчет очков и очистку локации
                 EndRound();
                 break;      
         }
