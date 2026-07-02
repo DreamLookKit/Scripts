@@ -298,7 +298,7 @@ MonoBehaviour:
   maxBuoyancyLimit: 150
   waterDrag: 4
   waterAngularDrag: 1
-  waterScript: {fileID: 0}
+  <WaterScript>k__BackingField: {fileID: 0}
 --- !u!114 &-8130118815833281764
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -318,6 +318,7 @@ MonoBehaviour:
   standHeight: 2
   crouchHeight: 1
   crouchSmoothTime: 8
+  cameraHeightRatio: 0.85
   jumpForce: 6
   groundCheckDistance: 1.1
   groundLayer:

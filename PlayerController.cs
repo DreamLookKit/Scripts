@@ -70,13 +70,13 @@ public class PlayerController : MonoBehaviour{
     }
     private void Start(){
         rb = GetComponent<Rigidbody>();
-        capsuleCollider = GetComponent<CapsuleCollider>();  // Поиск нашего коллайдера
-        buoyantScript = GetComponent<BuoyantObject>();
-        rb.interpolation = RigidbodyInterpolation.Interpolate;
+        capsuleCollider = GetComponent<CapsuleCollider>();      // Поиск нашего коллайдера
+        buoyantScript = GetComponent<BuoyantObject>();          // Поиск плавучести
+        rb.interpolation = RigidbodyInterpolation.Interpolate;  
         // Автоматически находим камеру среди дочерних объектов, если она не была перетащена в Инспектор
         if(playerCamera == null){
             Camera childCamera = GetComponentInChildren<Camera>();
-            if(childCamera != null) playerCamera = childCamera.transform;
+            if(childCamera != null) playerCamera = childCamera.transform;   // Записываем ссылку на камеру
             // Блокируем курсор мыши в центре экрана, чтобы он не покидал окно игры
         }
         Cursor.lockState = CursorLockMode.Locked;
@@ -85,15 +85,14 @@ public class PlayerController : MonoBehaviour{
     }
     // Графика и Логика (Привязана к FPS: 60, 100, 144 - неважно)
     private void Update(){
-        if(Mouse.current != null)
-        {
+        if(Mouse.current != null){
             // Мы получаем изменение положения мыши для текущего кадра (30f - компенсация медленного движения мыши)
             Vector2 mouseDelta = LookAction.ReadValue<Vector2>() * (mouseSensivity * 30f) * Time.deltaTime;
             // Поворачиваем туловище влево и вправо
             transform.Rotate(Vector3.up * mouseDelta.x);
             // Наклоняем камеру вверх и вниз
-            cameraRotationX -= mouseDelta.y;
-            cameraRotationX = Mathf.Clamp(cameraRotationX, -85f, 85f);
+            // Насколько наклонить камеру, отняв координапты мыши за текущий кадр, ограничив 85 градусами
+            cameraRotationX = Mathf.Clamp(cameraRotationX - mouseDelta.y, -85f, 85f); // Насколько сдвинуть камеру, отняв координапты мыши за текущий кадр, ограничив 85 градусами
             playerCamera.localRotation = Quaternion.Euler(cameraRotationX, 0f, 0f);
         }
         isGrounded = Physics.Raycast(transform.position, Vector3.down, groundCheckDistance, groundLayer);
@@ -117,19 +116,18 @@ public class PlayerController : MonoBehaviour{
         float currentSpeed = walkSpeed;
         float targetVelocityY = rb.linearVelocity.y;
         if(IsInWater()){
-            currentSpeed = walkSpeed * 0.7f; 
+            currentSpeed = walkSpeed * 0.5f; 
             // Перенесли чтение высоты сюда, чтобы она была доступна ВСЕМ условиям ниже
             float waterSurfaceY = 0f;
             // Определяем текущую координату поверхности воды
-            if(buoyantScript != null && buoyantScript.WaterScript != null){
+            if(buoyantScript != null && buoyantScript.WaterScript != null)
                 waterSurfaceY = buoyantScript.WaterScript.SurfaceY;
-            }
             if(CrouchAction.IsPressed()) 
-                targetVelocityY = -waterVerticalSpeed; // {!!_code_annotation_0_!!}
+                targetVelocityY = -waterVerticalSpeed; // Нажата кнопка приседа — активно погружаемся на глубину
             else if(JumpAction.IsPressed()){
-                if (transform.position.y < (waterSurfaceY - 0.2f)){
-                    targetVelocityY = waterVerticalSpeed; // {!!_code_annotation_1_!!}
-                }else targetVelocityY = rb.linearVelocity.y; // {!!_code_annotation_2_!!}
+                 if (transform.position.y < (waterSurfaceY - 0.2f)){
+                    targetVelocityY = waterVerticalSpeed; // Нажат пробел и мы глубоко — плывем вверх (всплываем)
+                 }else targetVelocityY = rb.linearVelocity.y; // Мы у самого края воды — отключаем силу, просто дрейфуем
             }
         }
         else if(CrouchAction.IsPressed())
