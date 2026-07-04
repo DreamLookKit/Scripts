@@ -11,6 +11,10 @@ public partial class PlayerController : MonoBehaviour{
     [SerializeField] private float sprintSpeed = 11f;
     [SerializeField] private float crouchSpeed = 3.5f;
     [SerializeField] private float mouseSensivity = 2f;
+    [Tooltip("Character acceleration")]
+    [SerializeField] private float acceleration = 16f;
+    [Tooltip("Character stopping speed")]
+    [SerializeField] private float deceleration = 14f;
     [Header("Crouch Settings")]
     [SerializeField] private float standHeight = 2f;        // Стандартная высота игрока
     [SerializeField] private float crouchHeight = 1.0f;        // Высота игрока в приседе
@@ -115,17 +119,25 @@ public partial class PlayerController : MonoBehaviour{
         Vector2 inputVector = MoveAction.ReadValue<Vector2>();
         // Вычисляем физическое направление движения
         Vector3 moveDirection = (transform.forward * inputVector.y + transform.right * inputVector.x).normalized;
-        // Расчет горизонтальной скорости (Спринт, Присед или Ходьба)
+        // Определяем, что мы сейчас делаем: разгоняемся (WASD зажат) или тормозим (WASD отпущен)
+        // inputVector.magnitude > 0 означает, что игрок жмет клавиши движения
+        float currentRate = (inputVector.magnitude > 0)? acceleration : deceleration;
+        // Устанавливаем стандартную скорость хотьбы, тк пока не знаем, какие клавиши нажаты
         float currentSpeed = walkSpeed;
-        // Важно: по умолчанию оставляем ту скорость, которую посчитал сам PhysX (гравитация, выталкивание)
+        // Важно: по умолчанию оставляем ту скорость погружения/всплытия, которую посчитал сам PhysX
         float targetVelocityY = rb.linearVelocity.y;
+        // Если мы находимся в воде, инерция должна быть более «вязкой» (тормозим медленнее, разгоняемся тяжелее)
         if (IsInWater()){
-            currentSpeed = walkSpeed * 0.3f; // Ограничили скорость в воде вполовину
-            float waterSurfaceY = 0f;
+            // В воде снижаем скорость изменения импульса, например, в 2.5 раза
+            currentRate /= 2.5f; 
+            currentSpeed = walkSpeed * 0.5f; // Обычная скорость в воде  
+            if (CrouchAction.IsPressed())
+                // Нажата кнопка приседа — активно погружаемся на глубину
+                //Умножение на 0.4f - снизили скорость погружения
+                targetVelocityY = -waterVerticalSpeed*0.4f;
+            /* float waterSurfaceY = 0f;
             if (buoyantScript != null && buoyantScript.WaterScript != null)
-                waterSurfaceY = buoyantScript.WaterScript.SurfaceY;
-            if (CrouchAction.IsPressed()) 
-                targetVelocityY = -waterVerticalSpeed; // Нажата кнопка приседа — активно погружаемся на глубину
+                waterSurfaceY = buoyantScript.WaterScript.SurfaceY; */
             // Пока уберы всплытие на пробел
             /* else if (JumpAction.IsPressed())
             {
@@ -139,11 +151,12 @@ public partial class PlayerController : MonoBehaviour{
             currentSpeed = crouchSpeed;
         else if (SprintAction.IsPressed())
             currentSpeed = sprintSpeed;
+        // Идеальная горизонтальная скорость, которую хочет получить игрок прямо сейчас
+        Vector3 normalVelocity = moveDirection * currentSpeed;
+        // ПЛАВНО подтягиваем ТЕКУЩУЮ скорость Rigidbody к ИДЕАЛЬНОЙ скорости через MoveTowards
+        float targetVelocityX = Mathf.MoveTowards(rb.linearVelocity.x, normalVelocity.x, currentRate * Time.fixedDeltaTime);
+        float targetVelocityZ = Mathf.MoveTowards(rb.linearVelocity.z, normalVelocity.z, currentRate * Time.fixedDeltaTime);   
         // Применяем обновленные скорости СТРОГО к горизонтальным осям
-        float targetVelocityX = moveDirection.x * currentSpeed;
-        float targetVelocityZ = moveDirection.z * currentSpeed;
-        // ВНИМАНИЕ: На суше targetVelocityY равен текущему честному rb.linearVelocity.y, 
-        // поэтому этот код больше НЕ БЛОКИРУЕТ выталкивание земли и не дает проваливаться!
         rb.linearVelocity = new Vector3(targetVelocityX, targetVelocityY, targetVelocityZ);
     }
     private void HandleCrouch(){
