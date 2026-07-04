@@ -1,17 +1,29 @@
+/* - От 0.1 до 0.9 — «Тонущие объекты» (Тяжелее воды)
+Физически это означает, что плотность объекта выше плотности воды. 
+Даже если предмет полностью уйдет на дно, силы Архимеда не хватит, чтобы его поднять. 
+Он будет реалистично лежать на дне, но падать сквозь воду чуть медленнее, чем в воздухе.
+- Ровно 1.0 — «Идеальный баланс» (Нейтральная плавучесть)
+Объект весит ровно столько же, сколько вытесненная им вода (как подводная лодка или рыба). 
+На какой глубине вы его оставите, там он и зависнет.
+- От 1.1 до 1.9 — «Тяжелая плавучесть» (Металл, сырое дерево)
+Объекты будут плавать, но погружаясь в воду очень глубоко. 
+Например, при 1.2 бочка будет торчать из воды всего на 15–20%, а остальная её часть будет скрыта под поверхностью.
+- Ровно 2.0 — «Стандарт» (Сухое дерево, пластик)
+Универсальная точка равновесия. Объект погружается ровно наполовину (на 50%). 
+Выглядит отлично для большинства стандартных игровых коробок и бочек.
+-От 2.1 до 5.0 — «Экстремальная плавучесть» (Пенопласт, мячи, воздух)
+Объекты плавают строго на поверхности, едва касаясь воды дном (погружение на 10–20%). 
+Если такую бочку насильно притопить скриптом или сбросить с высоты, она очень резво выскочит обратно наверх.
+ */
 using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody))]
 public class BuoyantObject : MonoBehaviour{
     // Переменные
     [Header("Buoyant settings")]
-    //[Tooltip("Force, pushing object upward. Must be more than gravity (ex, > 9.81)")]
-    //[SerializeField] private float buoyancyForce = 40f;
-    //[Tooltip("Maximum allowed buoyancy force to prevent catapult effect")]
-    //[SerializeField] private float maxBuoyancyLimit = 150f;     // Фикс экстремального выталкивания объектов
-    
     //Коэффициент плавучести. 1.0 — баланс, 2.0 — плавает как пенопласт, меньше 1.0 — тонет
     [Tooltip("Buoyancy coefficient")]
-    [Range(0.1f, 2.0f)]
+    [Range(0.1f, 5.0f)]
     [SerializeField] private float floatingPower = 2.0f; // Возвращаем её в контекст кода!
     [Tooltip("Water movement drag (for smoothy braking object & not jumping like a bol)")]
     [SerializeField] private float waterDrag = 4f;
@@ -45,18 +57,14 @@ public class BuoyantObject : MonoBehaviour{
             float waterSurfaceY = (WaterScript != null) ? WaterScript.SurfaceY : 0f;
             float immersionDepth = waterSurfaceY - GetObjectBottom();
             if (immersionDepth > 0){
-                //float massMultiplier = (pc != null) ? 1f : Mathf.Max(rb.mass, 2f);
-                //float dynamicBuoyancy = Mathf.Clamp(buoyancyForce * massMultiplier * immersionDepth, 0f, maxBuoyancyLimit);
-                //rb.AddForce(Vector3.up * dynamicBuoyancy, ForceMode.Acceleration);
-                
                 // Ограничиваем максимальную глубину высотой самого объекта, 
                 // чтобы сила выталкивания не росла бесконечно, когда объект полностью под водой.
                 // objectHeight — высота вашей бочки или персонажа
                 float objectHeight = GetComponent<Collider>().bounds.size.y;
                 float middleObjectHeight = Mathf.Min(immersionDepth, objectHeight);
-                float massMultiplier = (pc != null) ? 1f : Mathf.Max(rb.mass, 2f);
+                float gravity = Mathf.Abs(Physics.gravity.y);
                 // Считаем честную силу Архимеда с учетом массы
-                Vector3 buoyanctForce = Vector3.up * floatingPower * middleObjectHeight * massMultiplier;
+                Vector3 buoyanctForce = Vector3.up * floatingPower * middleObjectHeight * rb.mass * gravity;
                 rb.AddForce(buoyanctForce, ForceMode.Force);
           }
         }

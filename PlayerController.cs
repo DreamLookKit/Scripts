@@ -79,7 +79,7 @@ public partial class PlayerController : MonoBehaviour{
             if(childCamera != null) playerCamera = childCamera.transform;   // Записываем ссылку на камеру
             // Блокируем курсор мыши в центре экрана, чтобы он не покидал окно игры
         }
-        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.lockState = CursorLockMode.Locked; 
         // Скрываем его
         Cursor.visible = false;
     }
@@ -101,9 +101,9 @@ public partial class PlayerController : MonoBehaviour{
         if(JumpAction.WasPressedThisFrame() && isGrounded && !IsInWater()){
             rb.AddForce(Vector3.up * jumpForce, ForceMode.VelocityChange);
         }
-        // Механика прыжка из воды
-        if(JumpAction.WasPressedThisFrame() && IsInWater())
-            rb.AddForce(Vector3.up * (jumpForce * 1.2f), ForceMode.VelocityChange);
+        // Пока уберу (Механика прыжка из воды)
+        /* if(JumpAction.WasPressedThisFrame() && IsInWater())
+            rb.AddForce(Vector3.up * (jumpForce * 1.2f), ForceMode.VelocityChange); */
         // Логика изменения высоты коллайдера и камеры (только если мы НЕ в воде)
         if(!IsInWater())
             HandleCrouch(); 
@@ -119,21 +119,21 @@ public partial class PlayerController : MonoBehaviour{
         float currentSpeed = walkSpeed;
         // Важно: по умолчанию оставляем ту скорость, которую посчитал сам PhysX (гравитация, выталкивание)
         float targetVelocityY = rb.linearVelocity.y;
-        if (IsInWater())
-        {
-            currentSpeed = walkSpeed * 0.5f; // Ограничили скорость в воде вполовину
+        if (IsInWater()){
+            currentSpeed = walkSpeed * 0.3f; // Ограничили скорость в воде вполовину
             float waterSurfaceY = 0f;
             if (buoyantScript != null && buoyantScript.WaterScript != null)
                 waterSurfaceY = buoyantScript.WaterScript.SurfaceY;
             if (CrouchAction.IsPressed()) 
                 targetVelocityY = -waterVerticalSpeed; // Нажата кнопка приседа — активно погружаемся на глубину
-            else if (JumpAction.IsPressed())
+            // Пока уберы всплытие на пробел
+            /* else if (JumpAction.IsPressed())
             {
                 if (transform.position.y < (waterSurfaceY - 0.2f))
                     targetVelocityY = waterVerticalSpeed; // Нажат пробел и мы глубоко — плывем вверх (всплываем)
                 else 
                     targetVelocityY = rb.linearVelocity.y; // Мы у самого края воды — отключаем силу, просто дрейфуем
-            }
+            } */
         }
         else if(CrouchAction.IsPressed())
             currentSpeed = crouchSpeed;
