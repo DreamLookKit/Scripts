@@ -4,10 +4,15 @@ using UnityEngine;
 public class BuoyantObject : MonoBehaviour{
     // Переменные
     [Header("Buoyant settings")]
-    [Tooltip("Force, pushing object upward. Must be more than gravity (ex, > 9.81)")]
-    [SerializeField] private float buoyancyForce = 40f;
-    [Tooltip("Maximum allowed buoyancy force to prevent catapult effect")]
-    [SerializeField] private float maxBuoyancyLimit = 150f;     // Фикс экстремального выталкивания объектов
+    //[Tooltip("Force, pushing object upward. Must be more than gravity (ex, > 9.81)")]
+    //[SerializeField] private float buoyancyForce = 40f;
+    //[Tooltip("Maximum allowed buoyancy force to prevent catapult effect")]
+    //[SerializeField] private float maxBuoyancyLimit = 150f;     // Фикс экстремального выталкивания объектов
+    
+    //Коэффициент плавучести. 1.0 — баланс, 2.0 — плавает как пенопласт, меньше 1.0 — тонет
+    [Tooltip("Buoyancy coefficient")]
+    [Range(0.1f, 2.0f)]
+    [SerializeField] private float floatingPower = 2.0f; // Возвращаем её в контекст кода!
     [Tooltip("Water movement drag (for smoothy braking object & not jumping like a bol)")]
     [SerializeField] private float waterDrag = 4f;
     [Tooltip("Water rotate drag (stabelize boat from sudden change)")]
@@ -40,10 +45,20 @@ public class BuoyantObject : MonoBehaviour{
             float waterSurfaceY = (WaterScript != null) ? WaterScript.SurfaceY : 0f;
             float immersionDepth = waterSurfaceY - GetObjectBottom();
             if (immersionDepth > 0){
+                //float massMultiplier = (pc != null) ? 1f : Mathf.Max(rb.mass, 2f);
+                //float dynamicBuoyancy = Mathf.Clamp(buoyancyForce * massMultiplier * immersionDepth, 0f, maxBuoyancyLimit);
+                //rb.AddForce(Vector3.up * dynamicBuoyancy, ForceMode.Acceleration);
+                
+                // Ограничиваем максимальную глубину высотой самого объекта, 
+                // чтобы сила выталкивания не росла бесконечно, когда объект полностью под водой.
+                // objectHeight — высота вашей бочки или персонажа
+                float objectHeight = GetComponent<Collider>().bounds.size.y;
+                float middleObjectHeight = Mathf.Min(immersionDepth, objectHeight);
                 float massMultiplier = (pc != null) ? 1f : Mathf.Max(rb.mass, 2f);
-                float dynamicBuoyancy = Mathf.Clamp(buoyancyForce * massMultiplier * immersionDepth, 0f, maxBuoyancyLimit);
-                rb.AddForce(Vector3.up * dynamicBuoyancy, ForceMode.Acceleration);
-            }
+                // Считаем честную силу Архимеда с учетом массы
+                Vector3 buoyanctForce = Vector3.up * floatingPower * middleObjectHeight * massMultiplier;
+                rb.AddForce(buoyanctForce, ForceMode.Force);
+          }
         }
     }
     // Этот метод срабатывает ОДИН РАЗ в момент касания триггера воды
