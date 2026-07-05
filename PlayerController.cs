@@ -132,17 +132,19 @@ public class PlayerController : MonoBehaviour{
         float targetVelocityY = rb.linearVelocity.y;
         // Если мы находимся в воде, инерция должна быть более «вязкой» (тормозим медленнее, разгоняемся тяжелее)
         if (IsInWater()){
-            // В воде снижаем скорость изменения импульса, например, в 2.5 раза
-            currentRate /= 2.5f; 
             if (CrouchAction.IsPressed()){
                 // Нажата кнопка приседа — активно погружаемся на глубину
                 //Умножение на 0.4f - снизили скорость погружения
                 targetVelocityY = -waterVerticalSpeed*0.3f;
                 currentSpeed = walkSpeed * 0.5f;
-            }else if (SprintAction.IsPressed())
-                currentSpeed = sprintSpeed * 0.4f;         // Спринет в воде - сравнима с со скоростью хотьбы на суше
-            else
+                currentRate /= 2.5f;
+            }else if (SprintAction.IsPressed()){
+                currentSpeed = sprintSpeed * 0.5f;         // Спринет в воде - сравнима с со скоростью хотьбы на суше
+                currentRate /= 1.2f; 
+           }else{
                 currentSpeed = walkSpeed * 0.5f; // Обычная скорость в воде 
+                currentRate /= 2.5f;
+           }
             /* float waterSurfaceY = 0f;
             if (buoyantScript != null && buoyantScript.WaterScript != null)
                 waterSurfaceY = buoyantScript.WaterScript.SurfaceY; */
@@ -155,10 +157,15 @@ public class PlayerController : MonoBehaviour{
                     targetVelocityY = rb.linearVelocity.y; // Мы у самого края воды — отключаем силу, просто дрейфуем
             } */
         }
-        else if(CrouchAction.IsPressed())
-            currentSpeed = crouchSpeed;
-        else if (SprintAction.IsPressed())
-            currentSpeed = sprintSpeed;
+        // Если мы на суше
+        else{ 
+            if(CrouchAction.IsPressed())
+                currentSpeed = crouchSpeed;
+            else if (SprintAction.IsPressed())
+                currentSpeed = sprintSpeed;
+            else
+                currentSpeed = walkSpeed;
+        }
         // Идеальная горизонтальная скорость, которую хочет получить игрок прямо сейчас
         Vector3 normalVelocity = moveDirection * currentSpeed;
         // ПЛАВНО подтягиваем ТЕКУЩУЮ скорость Rigidbody к ИДЕАЛЬНОЙ скорости через MoveTowards
