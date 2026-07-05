@@ -5,22 +5,25 @@ using UnityEngine.InputSystem;
 [RequireComponent(typeof(CapsuleCollider))]
 
 
-public partial class PlayerController : MonoBehaviour{
+public class PlayerController : MonoBehaviour{
     [Header("Movement Settings")]
     [SerializeField] private float walkSpeed = 7f;
     [SerializeField] private float sprintSpeed = 11f;
     [SerializeField] private float crouchSpeed = 3.5f;
     [SerializeField] private float mouseSensivity = 2f;
+    [Header("Movement Physics: On ground")]
     [Tooltip("Character acceleration")]
     [SerializeField] private float acceleration = 16f;
     [Tooltip("Character stopping speed")]
     [SerializeField] private float deceleration = 14f;
+    [Header("Movement Physics: On air")]
+    [Tooltip("Momentum retention coefficient in air")]
+    [SerializeField] [Range(0f, 1f)] private float airControlFacotr = 0.15f;
     [Header("Crouch Settings")]
     [SerializeField] private float standHeight = 2f;        // Стандартная высота игрока
     [SerializeField] private float crouchHeight = 1.0f;        // Высота игрока в приседе
     [SerializeField] private float crouchSmoothTime = 8f;   // Скорость плавного опускания камеры
-    [Range(0.5f, 1.0f)]
-    [SerializeField] private float cameraHeightRatio = 0.85f;   // Eye level (percentage of body height)
+    [SerializeField] [Range(0.5f, 1.0f)] private float cameraHeightRatio = 0.85f;   // Eye level (percentage of body height)
     [Header("Jump & Physics Settings")]
     [SerializeField] private float jumpForce = 6f;
     [SerializeField] private float groundCheckDistance = 0.2f;
@@ -113,15 +116,16 @@ public partial class PlayerController : MonoBehaviour{
             HandleCrouch(); 
     }
     // Физическая сила всегда применяется в FixedUpdate (50 раз всекунду)
-    private void FixedUpdate()
-    {
+    private void FixedUpdate(){
         // Считываем чистый вектор WASD
         Vector2 inputVector = MoveAction.ReadValue<Vector2>();
         // Вычисляем физическое направление движения
         Vector3 moveDirection = (transform.forward * inputVector.y + transform.right * inputVector.x).normalized;
         // Определяем, что мы сейчас делаем: разгоняемся (WASD зажат) или тормозим (WASD отпущен)
-        // inputVector.magnitude > 0 означает, что игрок жмет клавиши движения
+        // ...inputVector.magnitude > 0 означает, что игрок жмет клавиши движения
         float currentRate = (inputVector.magnitude > 0)? acceleration : deceleration;
+        // Если мы НЕ на земле и НЕ в воде — срезаем силу торможения/разгона (для более длительного прыжка)
+        if(!isGrounded && !IsInWater()) currentRate *= airControlFacotr;
         // Устанавливаем стандартную скорость хотьбы, тк пока не знаем, какие клавиши нажаты
         float currentSpeed = walkSpeed;
         // Важно: по умолчанию оставляем ту скорость погружения/всплытия, которую посчитал сам PhysX
@@ -131,10 +135,14 @@ public partial class PlayerController : MonoBehaviour{
             // В воде снижаем скорость изменения импульса, например, в 2.5 раза
             currentRate /= 2.5f; 
             currentSpeed = walkSpeed * 0.5f; // Обычная скорость в воде  
-            if (CrouchAction.IsPressed())
+            if (CrouchAction.IsPressed()){
                 // Нажата кнопка приседа — активно погружаемся на глубину
                 //Умножение на 0.4f - снизили скорость погружения
-                targetVelocityY = -waterVerticalSpeed*0.4f;
+                targetVelocityY = -waterVerticalSpeed*0.3f;
+            }else if (SprintAction.IsPressed())
+                currentSpeed = walkSpeed;        // Спринет в воде - сравнима с со скоростью хотьбы на суше
+            else
+                currentSpeed = walkSpeed * 0.5f; // Обычная скорость в воде 
             /* float waterSurfaceY = 0f;
             if (buoyantScript != null && buoyantScript.WaterScript != null)
                 waterSurfaceY = buoyantScript.WaterScript.SurfaceY; */
@@ -170,4 +178,21 @@ public partial class PlayerController : MonoBehaviour{
         camPos.y = currentHeight * cameraHeightRatio;
         playerCamera.localPosition = camPos;
     }
+    
+    #region  Water & Object Bottom
+    private bool IsInWater()
+    {
+        return buoyantScript != null && buoyantScript.IsInWater;
+    }
+    private Vector3 GetObjectBottom()
+    {
+        // Берем честную МИРОВУЮ позицию центра игрока
+        Vector3 worldPos = transform.position;
+        // Считаем половину высоты его капсулы
+        float halfHeight = capsuleCollider.height / 2f;
+        // Возвращаем точку: строго по центру X и Z, а по вертикали Y опускаемся на уровень ног 
+        // и приподнимаем старт на 5 сантиметров вверх (внутрь тела) для защиты от застревания
+        return new Vector3(worldPos.x, worldPos.y - halfHeight + 0.05f, worldPos.z);
+    }
+    #endregion
 }
