@@ -134,13 +134,13 @@ public class PlayerController : MonoBehaviour{
         if (IsInWater()){
             // В воде снижаем скорость изменения импульса, например, в 2.5 раза
             currentRate /= 2.5f; 
-            currentSpeed = walkSpeed * 0.5f; // Обычная скорость в воде  
             if (CrouchAction.IsPressed()){
                 // Нажата кнопка приседа — активно погружаемся на глубину
                 //Умножение на 0.4f - снизили скорость погружения
                 targetVelocityY = -waterVerticalSpeed*0.3f;
+                currentSpeed = walkSpeed * 0.5f;
             }else if (SprintAction.IsPressed())
-                currentSpeed = walkSpeed;        // Спринет в воде - сравнима с со скоростью хотьбы на суше
+                currentSpeed = sprintSpeed * 0.4f;         // Спринет в воде - сравнима с со скоростью хотьбы на суше
             else
                 currentSpeed = walkSpeed * 0.5f; // Обычная скорость в воде 
             /* float waterSurfaceY = 0f;
