@@ -10,9 +10,9 @@ public class PlayerController : MonoBehaviour{
     [SerializeField] private float bobSpeed = 5f; // Скорость покачивания при дыхании
     [SerializeField] private float bobAmount = 0.02f; // Амплитуда (насколько сильно качается взгляд)
     [Header("Movement Settings")]
-    [SerializeField] private float walkSpeed = 7f;
-    [SerializeField] private float sprintSpeed = 11f;
-    [SerializeField] private float crouchSpeed = 3.5f;
+    [SerializeField] private float walkSpeed = 2f;
+    [SerializeField] private float sprintSpeed = 5f;
+    [SerializeField] private float crouchSpeed = 1.5f;
     [SerializeField] private float mouseSensivity = 2f;
     [Header("Movement Physics: On ground")]
     [Tooltip("Character acceleration")]
@@ -206,7 +206,7 @@ public class PlayerController : MonoBehaviour{
         rb.linearVelocity = new Vector3(targetVelocityX, targetVelocityY, targetVelocityZ);
         if(anim != null){
             // Намертво центрируем модель внутри капсулы, блокируя любые инерционные сдвиги
-            anim.transform.localPosition = new Vector3(0f, -1f, 0f); // -1f - это подошва капсулы, которую мы настраивали
+            anim.transform.localPosition = new Vector3(0f, -1.01f, 0f); // -1f - это подошва капсулы, которую мы настраивали
         }
     }
     private void HandleCrouch(){
@@ -216,16 +216,14 @@ public class PlayerController : MonoBehaviour{
         float currentHeight = Mathf.Lerp(capsuleCollider.height, targetHeight, lerpFactor);
         capsuleCollider.height = currentHeight;
         // Обновляем базовую высоту, учитывая приседа
-        defaultY = currentHeight * cameraHeightRatio;
+        defaultY = currentHeight * cameraHeightRatio - 1f;
     }
     
     #region  Water & Object Bottom
-    private bool IsInWater()
-    {
+    private bool IsInWater(){
         return buoyantScript != null && buoyantScript.IsInWater;
     }
-    private Vector3 GetObjectBottom()
-    {
+    private Vector3 GetObjectBottom(){
         // Берем честную МИРОВУЮ позицию центра игрока
         Vector3 worldPos = transform.position;
         // Считаем половину высоты его капсулы
