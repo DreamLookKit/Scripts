@@ -130,6 +130,8 @@ public class PlayerController : MonoBehaviour{
             // Передаем скорость и флаг воды в параметры аниматора
             anim.SetFloat("Speed", horizontalVelocity.magnitude);
             anim.SetBool("IsInWater", IsInWater());
+            // Передаем положение стоит/присяд
+            anim.SetBool("IsCrouched", CrouchAction.IsPressed());
         }
         // Настраиваем положение камеры, учитывая эффект дыхангия
         if(playerCamera != null){
@@ -206,7 +208,7 @@ public class PlayerController : MonoBehaviour{
         rb.linearVelocity = new Vector3(targetVelocityX, targetVelocityY, targetVelocityZ);
         if(anim != null){
             // Намертво центрируем модель внутри капсулы, блокируя любые инерционные сдвиги
-            anim.transform.localPosition = new Vector3(0f, -1.01f, 0f); // -1f - это подошва капсулы, которую мы настраивали
+            anim.transform.localPosition = new Vector3(0f, 0f, 0f); // -1f - это подошва капсулы, которую мы настраивали
         }
     }
     private void HandleCrouch(){
@@ -215,8 +217,12 @@ public class PlayerController : MonoBehaviour{
         float lerpFactor = 1f - Mathf.Exp(-crouchSmoothTime * Time.deltaTime);
         float currentHeight = Mathf.Lerp(capsuleCollider.height, targetHeight, lerpFactor);
         capsuleCollider.height = currentHeight;
-        // Обновляем базовую высоту, учитывая приседа
-        defaultY = currentHeight * cameraHeightRatio - 1f;
+        // Динамически сдвигаем центр капсулы, чтобы подошва всегда оставалась в нуле
+        // Формула (высота / 2) идеально держит низ коллайдера прижатым к полу
+        capsuleCollider.center = new Vector3(0f, currentHeight / 2f, 0f);
+        // 3. Обновляем базовую высоту камеры
+        // Высота глаз теперь всегда рассчитывается строго от пола
+        defaultY = currentHeight * cameraHeightRatio;
     }
     
     #region  Water & Object Bottom
