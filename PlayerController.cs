@@ -6,6 +6,9 @@ using UnityEngine.InputSystem;
 
 
 public class PlayerController : MonoBehaviour{
+    [Header("Head Bobbing")]
+    [SerializeField] private float bobSpeed = 5f; // Скорость покачивания при дыхании
+    [SerializeField] private float bobAmount = 0.02f; // Амплитуда (насколько сильно качается взгляд)
     [Header("Movement Settings")]
     [SerializeField] private float walkSpeed = 7f;
     [SerializeField] private float sprintSpeed = 11f;
@@ -33,6 +36,8 @@ public class PlayerController : MonoBehaviour{
     [Header("References")]
     [SerializeField] private Transform playerCamera;
     [Header("Input Actions")]
+    private float defaultY = 0f;
+    private float timer = 0f;
     // Мы делаем ссылки на действия публичными, чтобы скрипт меню настроек мог получить к ним доступ
     public InputAction MoveAction { get; private set; }
     public InputAction LookAction { get; private set; }
@@ -42,6 +47,7 @@ public class PlayerController : MonoBehaviour{
     private Rigidbody rb;
     private CapsuleCollider capsuleCollider;    // Ссылка для изменения высоты тела
     public CapsuleCollider PlayerCollider => capsuleCollider; // Безопасная ссылка на CapsuleCollider
+    private Animator anim;
     private BuoyantObject buoyantScript;
     private float cameraRotationX = 0f;
     private float currentCameraY;   // Текущая локальная высота камеры
@@ -80,12 +86,15 @@ public class PlayerController : MonoBehaviour{
         capsuleCollider = GetComponent<CapsuleCollider>();      // Поиск нашего коллайдера
         buoyantScript = GetComponent<BuoyantObject>();          // Поиск плавучести
         rb.interpolation = RigidbodyInterpolation.Interpolate;  
+        // Ищем аниматор на дочерней 3D-модели
+        anim = GetComponentInChildren<Animator>();
         // Автоматически находим камеру среди дочерних объектов, если она не была перетащена в Инспектор
         if(playerCamera == null){
             Camera childCamera = GetComponentInChildren<Camera>();
-            if(childCamera != null) playerCamera = childCamera.transform;   // Записываем ссылку на камеру
-            // Блокируем курсор мыши в центре экрана, чтобы он не покидал окно игры
+            if(childCamera != null) playerCamera = childCamera.transform; 
+            defaultY = playerCamera.localPosition.y;            // Записываем ссылку на камеру
         }
+        // Блокируем курсор мыши в центре экрана, чтобы он не покидал окно игры
         Cursor.lockState = CursorLockMode.Locked; 
         // Скрываем его
         Cursor.visible = false;
@@ -114,6 +123,26 @@ public class PlayerController : MonoBehaviour{
         // Логика изменения высоты коллайдера и камеры (только если мы НЕ в воде)
         if(!IsInWater())
             HandleCrouch(); 
+        if(anim != null){
+            // Считаем чисто горизонтальную скорость (без учета прыжков/падения по Y)
+            Vector3 horizontalVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
+            // Передаем скорость и флаг воды в параметры аниматора
+            anim.SetFloat("Speed", horizontalVelocity.magnitude);
+            anim.SetBool("IsInWater", IsInWater());
+        }
+        if(playerCamera != null){
+            // Считаем скорость движения
+            Vector3 horizontalVelocity = new Vector3(rb.linearVelocity.x, 0f,  rb.linearVelocity.z);
+            float speed = horizontalVelocity.magnitude;
+            // Если двигаемся, качаем камеру быстрее. Если стоим - это плавное дыхание
+            float currentSpeed = speed > 0.1f ? bobSpeed * 1.5f : bobSpeed;
+            float currentAmount = speed > 0.1f ? bobAmount * 2f : bobAmount;
+            timer += Time.deltaTime * currentSpeed;
+            // Сдвигаем камеру по синусоиде вверх-вниз относительно дефолтной высоты
+            Vector3 newPos = playerCamera.localPosition;
+            newPos.y = defaultY + Mathf.Sin(timer) * currentAmount;
+            playerCamera.localPosition = newPos;
+        }
     }
     // Физическая сила всегда применяется в FixedUpdate (50 раз всекунду)
     private void FixedUpdate(){
@@ -173,6 +202,10 @@ public class PlayerController : MonoBehaviour{
         float targetVelocityZ = Mathf.MoveTowards(rb.linearVelocity.z, normalVelocity.z, currentRate * Time.fixedDeltaTime);   
         // Применяем обновленные скорости СТРОГО к горизонтальным осям
         rb.linearVelocity = new Vector3(targetVelocityX, targetVelocityY, targetVelocityZ);
+        if(anim != null){
+            // Намертво центрируем модель внутри капсулы, блокируя любые инерционные сдвиги
+            anim.transform.localPosition = new Vector3(0f, -1f, 0f); // -1f - это подошва капсулы, которую мы настраивали
+        }
     }
     private void HandleCrouch(){
         float targetHeight = CrouchAction.IsPressed() ? crouchHeight : standHeight;
