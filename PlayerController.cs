@@ -208,7 +208,7 @@ public class PlayerController : MonoBehaviour{
         rb.linearVelocity = new Vector3(targetVelocityX, targetVelocityY, targetVelocityZ);
         if(anim != null){
             // Намертво центрируем модель внутри капсулы, блокируя любые инерционные сдвиги
-            anim.transform.localPosition = new Vector3(0f, 0f, 0f); // -1f - это подошва капсулы, которую мы настраивали
+            anim.transform.localPosition = new Vector3(0f, -0.01f, 0f);
         }
     }
     private void HandleCrouch(){
@@ -232,11 +232,8 @@ public class PlayerController : MonoBehaviour{
     private Vector3 GetObjectBottom(){
         // Берем честную МИРОВУЮ позицию центра игрока
         Vector3 worldPos = transform.position;
-        // Считаем половину высоты его капсулы
-        float halfHeight = capsuleCollider.height / 2f;
-        // Возвращаем точку: строго по центру X и Z, а по вертикали Y опускаемся на уровень ног 
-        // и приподнимаем старт на 5 сантиметров вверх (внутрь тела) для защиты от застревания
-        return new Vector3(worldPos.x, worldPos.y - halfHeight + 0.05f, worldPos.z);
+        // Просто приподнимаем старт луча на 5 сантиметров вверх внутрь тела, как и раньше
+        return new Vector3(worldPos.x, worldPos.y + 0.05f, worldPos.z);
     }
     #endregion
 }
