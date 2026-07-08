@@ -280,7 +280,7 @@ Rigidbody:
   m_ImplicitTensor: 1
   m_UseGravity: 1
   m_IsKinematic: 0
-  m_Interpolate: 0
+  m_Interpolate: 1
   m_Constraints: 112
   m_CollisionDetection: 1
 --- !u!114 &301707110568756621
@@ -311,6 +311,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a86c0ce2de05f2841b69bf28b33565b5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerController
+  bobSpeed: 5
+  bobAmount: 0.02
   walkSpeed: 7
   sprintSpeed: 11
   crouchSpeed: 3.5

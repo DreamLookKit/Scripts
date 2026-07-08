@@ -121,6 +121,7 @@ public class PlayerController : MonoBehaviour{
         /* if(JumpAction.WasPressedThisFrame() && IsInWater())
             rb.AddForce(Vector3.up * (jumpForce * 1.2f), ForceMode.VelocityChange); */
         // Логика изменения высоты коллайдера и камеры (только если мы НЕ в воде)
+        // ВАЖНО! Вызывать функцию определения присяда ТОЛЬКО ДО настраивания положения камеры
         if(!IsInWater())
             HandleCrouch(); 
         if(anim != null){
@@ -130,6 +131,7 @@ public class PlayerController : MonoBehaviour{
             anim.SetFloat("Speed", horizontalVelocity.magnitude);
             anim.SetBool("IsInWater", IsInWater());
         }
+        // Настраиваем положение камеры, учитывая эффект дыхангия
         if(playerCamera != null){
             // Считаем скорость движения
             Vector3 horizontalVelocity = new Vector3(rb.linearVelocity.x, 0f,  rb.linearVelocity.z);
@@ -213,10 +215,8 @@ public class PlayerController : MonoBehaviour{
         float lerpFactor = 1f - Mathf.Exp(-crouchSmoothTime * Time.deltaTime);
         float currentHeight = Mathf.Lerp(capsuleCollider.height, targetHeight, lerpFactor);
         capsuleCollider.height = currentHeight;
-        // 2. Динамическое положение камеры (теперь выровнено по настоящему верху коллайдера)
-        Vector3 camPos = playerCamera.localPosition;
-        camPos.y = currentHeight * cameraHeightRatio;
-        playerCamera.localPosition = camPos;
+        // Обновляем базовую высоту, учитывая приседа
+        defaultY = currentHeight * cameraHeightRatio;
     }
     
     #region  Water & Object Bottom
