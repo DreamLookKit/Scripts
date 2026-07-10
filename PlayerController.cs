@@ -128,7 +128,10 @@ public class PlayerController : MonoBehaviour{
             // Считаем чисто горизонтальную скорость (без учета прыжков/падения по Y)
             Vector3 horizontalVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
             // Передаем скорость и флаг воды в параметры аниматора
-            anim.SetFloat("Speed", horizontalVelocity.magnitude);
+            if(CrouchAction.IsPressed())
+                anim.SetFloat("Speed", horizontalVelocity.magnitude, 0.1f, Time.deltaTime);
+            else
+                anim.SetFloat("Speed", horizontalVelocity.magnitude);
             anim.SetBool("IsInWater", IsInWater());
             // Передаем положение стоит/присяд
             anim.SetBool("IsCrouched", CrouchAction.IsPressed());
