@@ -135,6 +135,8 @@ public class PlayerController : MonoBehaviour{
             anim.SetBool("IsInWater", IsInWater());
             // Передаем положение стоит/присяд
             anim.SetBool("IsCrouched", CrouchAction.IsPressed());
+            // Передаем состояние земли с учетом полета
+            //anim.SetBool("IsGrounded", CheckLandingAhead());
         }
         // Настраиваем положение камеры, учитывая эффект дыхангия
         if(playerCamera != null){
