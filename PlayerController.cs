@@ -6,36 +6,32 @@ using UnityEngine.InputSystem;
 
 
 public class PlayerController : MonoBehaviour{
-    [Header("Head Bobbing")]
-    [SerializeField] private float bobSpeed = 5f; // Скорость покачивания при дыхании
-    [SerializeField] private float bobAmount = 0.02f; // Амплитуда (насколько сильно качается взгляд)
-    [Header("Movement Settings")]
+    [Header("Breath Settings")]
+    [SerializeField] private float breathSpeed = 5f; // Скорость покачивания при дыхании
+    [SerializeField] private float breathAmplitude = 0.02f; // Амплитуда (насколько сильно качается взгляд)
+    [Header("Movement Speed Settings")]
     [SerializeField] private float walkSpeed = 2f;
     [SerializeField] private float sprintSpeed = 5f;
     [SerializeField] private float crouchSpeed = 1.5f;
+    [SerializeField] private float waterVerticalSpeed = 5f;
     [SerializeField] private float mouseSensivity = 2f;
-    [Header("Movement Physics: On ground")]
-    [Tooltip("Character acceleration")]
+    [Header("Movement Physics Settings")]
     [SerializeField] private float acceleration = 16f;
-    [Tooltip("Character stopping speed")]
     [SerializeField] private float deceleration = 14f;
-    [Header("Movement Physics: On air")]
-    [Tooltip("Momentum retention coefficient in air")]
-    [SerializeField] [Range(0f, 1f)] private float airControlFacotr = 0.15f;
-    [Header("Crouch Settings")]
-    [SerializeField] private float standHeight = 2f;        // Стандартная высота игрока
-    [SerializeField] private float crouchHeight = 1.0f;        // Высота игрока в приседе
-    [SerializeField] private float crouchSmoothTime = 8f;   // Скорость плавного опускания камеры
-    [SerializeField] [Range(0.5f, 1.0f)] private float cameraHeightRatio = 0.85f;   // Eye level (percentage of body height)
-    [Header("Jump & Physics Settings")]
+    [SerializeField] [Range(0f, 1f)] private float airControlFacotr = 0.15f;    //Для контроля прыжка
     [SerializeField] private float jumpForce = 6f;
     [SerializeField] private float groundCheckDistance = 0.2f;
+    [Header("Crouch Camera Settings")]
+    [SerializeField] private float standHeight = 2f;        // Стандартная высота игрока
+    [SerializeField] private float crouchHeight = 1.0f;     // Высота игрока в приседе
+    [SerializeField] private float crouchSmoothTime = 8f;   // Скорость плавного опускания камеры
+    [SerializeField] [Range(0.5f, 1.0f)] private float cameraHeightRatio = 0.85f;   // Eye level (percentage of body height)
+    [Header("Animation Settings")]
+    [SerializeField] private Animator anim;
+    [SerializeField] private float landingAheadDistance = 1.7f;
     [SerializeField] private LayerMask groundLayer;
-    [Header("Water Control Settings")]
-    [SerializeField] private float waterVerticalSpeed = 5f;
     [Header("References")]
     [SerializeField] private Transform playerCamera;
-    [Header("Input Actions")]
     private float defaultY = 0f;
     private float timer = 0f;
     // Мы делаем ссылки на действия публичными, чтобы скрипт меню настроек мог получить к ним доступ
@@ -47,7 +43,6 @@ public class PlayerController : MonoBehaviour{
     private Rigidbody rb;
     private CapsuleCollider capsuleCollider;    // Ссылка для изменения высоты тела
     public CapsuleCollider PlayerCollider => capsuleCollider; // Безопасная ссылка на CapsuleCollider
-    private Animator anim;
     private BuoyantObject buoyantScript;
     private float cameraRotationX = 0f;
     private float currentCameraY;   // Текущая локальная высота камеры
@@ -116,6 +111,7 @@ public class PlayerController : MonoBehaviour{
         // Механика прыжка на суше
         if(JumpAction.WasPressedThisFrame() && isGrounded && !IsInWater()){
             rb.AddForce(Vector3.up * jumpForce, ForceMode.VelocityChange);
+            if(anim != null) anim.SetTrigger("Jump");
         }
         // Пока уберу (Механика прыжка из воды)
         /* if(JumpAction.WasPressedThisFrame() && IsInWater())
@@ -136,7 +132,7 @@ public class PlayerController : MonoBehaviour{
             // Передаем положение стоит/присяд
             anim.SetBool("IsCrouched", CrouchAction.IsPressed());
             // Передаем состояние земли с учетом полета
-            //anim.SetBool("IsGrounded", CheckLandingAhead());
+            anim.SetBool("IsGrounded", CheckLandingAhead());
         }
         // Настраиваем положение камеры, учитывая эффект дыхангия
         if(playerCamera != null){
@@ -144,8 +140,8 @@ public class PlayerController : MonoBehaviour{
             Vector3 horizontalVelocity = new Vector3(rb.linearVelocity.x, 0f,  rb.linearVelocity.z);
             float speed = horizontalVelocity.magnitude;
             // Если двигаемся, качаем камеру быстрее. Если стоим - это плавное дыхание
-            float currentSpeed = speed > 0.1f ? bobSpeed * 1.5f : bobSpeed;
-            float currentAmount = speed > 0.1f ? bobAmount * 2f : bobAmount;
+            float currentSpeed = speed > 0.1f ? breathSpeed * 1.5f : breathSpeed;
+            float currentAmount = speed > 0.1f ? breathAmplitude * 2f : breathAmplitude;
             timer += Time.deltaTime * currentSpeed;
             // Сдвигаем камеру по синусоиде вверх-вниз относительно дефолтной высоты
             Vector3 newPos = playerCamera.localPosition;
@@ -229,8 +225,7 @@ public class PlayerController : MonoBehaviour{
         // Высота глаз теперь всегда рассчитывается строго от пола
         defaultY = currentHeight * cameraHeightRatio;
     }
-    
-    #region  Water & Object Bottom
+    #region Water & Object Bottom & CheckLandingAhead for Jump
     private bool IsInWater(){
         return buoyantScript != null && buoyantScript.IsInWater;
     }
@@ -239,6 +234,10 @@ public class PlayerController : MonoBehaviour{
         Vector3 worldPos = transform.position;
         // Просто приподнимаем старт луча на 5 сантиметров вверх внутрь тела, как и раньше
         return new Vector3(worldPos.x, worldPos.y + 0.05f, worldPos.z);
+    }
+    private bool CheckLandingAhead(){
+        if(isGrounded) return true;
+        return Physics.Raycast(transform.position, Vector3.down, landingAheadDistance, groundLayer, QueryTriggerInteraction.Ignore);
     }
     #endregion
 }
