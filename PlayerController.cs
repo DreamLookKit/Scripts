@@ -182,7 +182,7 @@ public class PlayerController : MonoBehaviour{
             /* float waterSurfaceY = 0f;
             if (buoyantScript != null && buoyantScript.WaterScript != null)
                 waterSurfaceY = buoyantScript.WaterScript.SurfaceY; */
-            // Пока уберы всплытие на пробел
+            // Пока уберу всплытие на пробел
             /* else if (JumpAction.IsPressed())
             {
                 if (transform.position.y < (waterSurfaceY - 0.2f))
@@ -209,7 +209,7 @@ public class PlayerController : MonoBehaviour{
         rb.linearVelocity = new Vector3(targetVelocityX, targetVelocityY, targetVelocityZ);
         if(anim != null){
             // Намертво центрируем модель внутри капсулы, блокируя любые инерционные сдвиги
-            anim.transform.localPosition = new Vector3(0f, -0.01f, 0f);
+            //anim.transform.localPosition = new Vector3(0f, -0.01f, 0f);
         }
     }
     private void HandleCrouch(){
