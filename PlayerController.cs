@@ -107,7 +107,7 @@ public class PlayerController : MonoBehaviour{
             playerCamera.localRotation = Quaternion.Euler(cameraRotationX, 0f, 0f);
         }
         isGrounded = Physics.Raycast(GetObjectBottom(), Vector3.down, groundCheckDistance, groundLayer, QueryTriggerInteraction.Ignore);
-        //Debug.DrawRay(GetObjectBottom(), Vector3.down * groundCheckDistance, isGrounded ? Color.green : Color.red);
+        Debug.DrawRay(GetObjectBottom(), Vector3.down * groundCheckDistance, isGrounded ? Color.green : Color.red);
         // Механика прыжка на суше
         if(JumpAction.WasPressedThisFrame() && isGrounded && !IsInWater()){
             rb.AddForce(Vector3.up * jumpForce, ForceMode.VelocityChange);
@@ -132,7 +132,7 @@ public class PlayerController : MonoBehaviour{
             // Передаем положение стоит/присяд
             anim.SetBool("IsCrouched", CrouchAction.IsPressed());
             // Передаем состояние земли с учетом полета
-            anim.SetBool("IsGrounded", CheckLandingAhead());
+            anim.SetBool("IsGrounded", isGrounded); //Этот участок кода для теста
         }
         // Настраиваем положение камеры, учитывая эффект дыхангия
         if(playerCamera != null){
@@ -209,7 +209,7 @@ public class PlayerController : MonoBehaviour{
         rb.linearVelocity = new Vector3(targetVelocityX, targetVelocityY, targetVelocityZ);
         if(anim != null){
             // Намертво центрируем модель внутри капсулы, блокируя любые инерционные сдвиги
-            //anim.transform.localPosition = new Vector3(0f, -0.01f, 0f);
+            anim.transform.localPosition = new Vector3(0f, -0.01f, 0f);
         }
     }
     private void HandleCrouch(){
@@ -235,6 +235,7 @@ public class PlayerController : MonoBehaviour{
         // Просто приподнимаем старт луча на 5 сантиметров вверх внутрь тела, как и раньше
         return new Vector3(worldPos.x, worldPos.y + 0.05f, worldPos.z);
     }
+    // Проверка земли перед приземлением
     private bool CheckLandingAhead(){
         if(isGrounded) return true;
         return Physics.Raycast(transform.position, Vector3.down, landingAheadDistance, groundLayer, QueryTriggerInteraction.Ignore);
