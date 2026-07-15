@@ -20,7 +20,7 @@ public class PlayerController : MonoBehaviour{
     [SerializeField] private float deceleration = 14f;
     [SerializeField] [Range(0f, 1f)] private float airControlFacotr = 0.15f;    //Для контроля прыжка
     [SerializeField] private float jumpForce = 6f;
-    [SerializeField] private float groundCheckDistance = 0.2f;
+    [SerializeField] private float groundCheckDistance = 0.4f;
     [Header("Crouch Camera Settings")]
     [SerializeField] private float standHeight = 2f;        // Стандартная высота игрока
     [SerializeField] private float crouchHeight = 1.0f;     // Высота игрока в приседе
@@ -111,7 +111,10 @@ public class PlayerController : MonoBehaviour{
         // Механика прыжка на суше
         if(JumpAction.WasPressedThisFrame() && isGrounded && !IsInWater()){
             rb.AddForce(Vector3.up * jumpForce, ForceMode.VelocityChange);
-            if(anim != null) anim.SetTrigger("Jump");
+            if(anim != null){
+                anim.SetTrigger("Jump");
+                Debug.LogWarning("Jump trigger");
+            }
         }
         // Пока уберу (Механика прыжка из воды)
         /* if(JumpAction.WasPressedThisFrame() && IsInWater())
@@ -133,6 +136,10 @@ public class PlayerController : MonoBehaviour{
             anim.SetBool("IsCrouched", CrouchAction.IsPressed());
             // Передаем состояние земли с учетом полета
             anim.SetBool("IsGrounded", isGrounded); //Этот участок кода для теста
+            if(CheckLandingAhead() && rb.linearVelocity.y < -0.5f && !isGrounded && !IsInWater()){
+                anim.SetTrigger("Landing");
+                Debug.LogWarning("-Landing trigger");
+            }
         }
         // Настраиваем положение камеры, учитывая эффект дыхангия
         if(playerCamera != null){

@@ -126,7 +126,7 @@ MonoBehaviour:
   deceleration: 14
   airControlFacotr: 0.15
   jumpForce: 6
-  groundCheckDistance: 0.2
+  groundCheckDistance: 0.4
   standHeight: 2
   crouchHeight: 1
   crouchSmoothTime: 8
