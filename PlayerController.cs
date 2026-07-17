@@ -19,7 +19,7 @@ public class PlayerController : MonoBehaviour{
     [SerializeField] private float acceleration = 16f;
     [SerializeField] private float deceleration = 14f;
     [SerializeField] [Range(0f, 1f)] private float airControlFacotr = 0.15f;    //Для контроля прыжка
-    [SerializeField] private float jumpForce = 6f;
+    [SerializeField] private float jumpForce = 5f;
     [SerializeField] private float groundCheckDistance = 0.4f;
     [Header("Crouch Camera Settings")]
     [SerializeField] private float standHeight = 2f;        // Стандартная высота игрока
@@ -28,7 +28,7 @@ public class PlayerController : MonoBehaviour{
     [SerializeField] [Range(0.5f, 1.0f)] private float cameraHeightRatio = 0.85f;   // Eye level (percentage of body height)
     [Header("Animation Settings")]
     [SerializeField] private Animator anim;
-    [SerializeField] private float landingAheadDistance = 1.7f;
+    [SerializeField] private float landingAheadDistance = 3;
     [SerializeField] private LayerMask groundLayer;
     [Header("References")]
     [SerializeField] private Transform playerCamera;
@@ -131,14 +131,22 @@ public class PlayerController : MonoBehaviour{
                 anim.SetFloat("Speed", horizontalVelocity.magnitude, 0.1f, Time.deltaTime);
             else
                 anim.SetFloat("Speed", horizontalVelocity.magnitude);
-            anim.SetBool("IsInWater", IsInWater());
+            // Если в воде
+            if(IsInWater()){
+                anim.SetBool("IsInWater", true);    // Значит в воде
+                anim.SetBool("IsGrounded", false);  // А землю автоматом игнорируем
+            }else{  // Иначе
+                anim.SetBool("IsGrounded", isGrounded); // Проверяем, на земле или над землей
+                anim.SetBool("IsInWater", false);       // Воду автоматом игнорируем
+            } // Gemini, привет. Скажи, как тебе такое условие? Я просто не хотел 2 раза вызыватать IsInWater() (для проверки земли и воды) для экономии ресурсов процессора и памяти. 
+              // Напиши свое мнение как только это прочтешь)
             // Передаем положение стоит/присяд
             anim.SetBool("IsCrouched", CrouchAction.IsPressed());
-            // Передаем состояние земли с учетом полета
-            anim.SetBool("IsGrounded", isGrounded); //Этот участок кода для теста
-            if(CheckLandingAhead() && rb.linearVelocity.y < -0.5f && !isGrounded && !IsInWater()){
+            // Передаем состояние нахождения на земле (везде кроме воды)
+            //if(!IsInWater()) anim.SetBool("IsGrounded", isGrounded);
+            if(CheckLandingAhead() && rb.linearVelocity.y < -3f && !IsInWater()){
                 anim.SetTrigger("Landing");
-                Debug.LogWarning("-Landing trigger");
+                Debug.Log("-Landing Trigger");
             }
         }
         // Настраиваем положение камеры, учитывая эффект дыхангия

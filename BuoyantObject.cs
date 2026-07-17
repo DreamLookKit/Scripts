@@ -91,9 +91,15 @@ public class BuoyantObject : MonoBehaviour{
     }
     //Этот метод находит самую нижнюю точку хитбокса (коллайдера) объекта в игровом мире
     private float GetObjectBottom(){
-        if (pc != null && pc.PlayerCollider != null){   // Это коллайдер игрока?
+        // 1. Проверяем, игрок ли это, используя уже готовую безопасную на его коллайдер
+        if (pc != null && pc.PlayerCollider != null)
             return transform.position.y;   // Рассчитываем низ игрока (ноги)
-        }
+        // 2. Если это предмет (бочка, ящик) - пытаемся взять его собственный коллайдер
+        Collider objectCollider = GetComponent<Collider>();
+        if(objectCollider != null)
+            // bounds.min.y - это гарантированный физический низ в мировых координатах
+            return objectCollider.bounds.min.y;
+        // 3. Запасной вариант на случай, если у объекта вообще нет коллайдера (для плавучести он нужен)
         return transform.position.y - (transform.localScale.y / 2f);    // Рассчитываем низ предмета (например, бочки)
     }
 }

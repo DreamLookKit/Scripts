@@ -99,7 +99,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 81b3079e5101f1c4eb4cb6f8af7f3e87, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BuoyantObject
-  floatingPower: 2
+  floatingPower: 0.75
   waterDrag: 4
   waterAngularDrag: 1
   <WaterScript>k__BackingField: {fileID: 0}
@@ -125,14 +125,14 @@ MonoBehaviour:
   acceleration: 16
   deceleration: 14
   airControlFacotr: 0.15
-  jumpForce: 6
+  jumpForce: 4
   groundCheckDistance: 0.4
   standHeight: 2
   crouchHeight: 1
   crouchSmoothTime: 8
   cameraHeightRatio: 0.85
   anim: {fileID: 0}
-  landingAheadDistance: 1.7
+  landingAheadDistance: 3
   groundLayer:
     serializedVersion: 2
     m_Bits: 8

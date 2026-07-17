@@ -12,7 +12,7 @@ public class GameManager : MonoBehaviour{
     }
     // Текущее состояние игры
     public GameState currentState = GameState.Building;
-    public float timer = 10f; // Таймер на 10 секунд (для тестов) на постройку лодки
+    public float timer = 1f; // Таймер на 10 секунд (для тестов) на постройку лодки
     private void Awake(){
         // Кастомный синглтон: этот объект будет доступен для всех остальных скриптов
         if(Instance == null){
