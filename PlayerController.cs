@@ -130,11 +130,22 @@ public class PlayerController : MonoBehaviour{
         if(anim != null){
             // Считаем чисто горизонтальную скорость (без учета прыжков/падения по Y)
             Vector3 horizontalVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
+            
+            
+            // 1. Считаем направление движения относительно взгляда игрока.
+            // Vector3.Dot вернет от 1 (идем строго вперед) до -1 (идем строго назад)
+            float directionSign = Vector3.Dot(horizontalVelocity.normalized, transform.forward);
+
+            // 2. Умножаем чистую скорость на знак направления. 
+            // Если directionSign отрицательный, то и итоговая скорость в аниматор уйдет со знаком минус.
+            float signedSpeed = horizontalVelocity.magnitude * directionSign;
+            
+            
             // Передаем скорость и флаг воды в параметры аниматора
             if(CrouchAction.IsPressed())
-                anim.SetFloat("Speed", horizontalVelocity.magnitude, 0.1f, Time.deltaTime); //Снижаем изменение Speed для плавного вставания модельки
+                anim.SetFloat("Speed", signedSpeed, 0.1f, Time.deltaTime); //Снижаем изменение Speed для плавного вставания модельки
             else
-                anim.SetFloat("Speed", horizontalVelocity.magnitude);
+                anim.SetFloat("Speed", signedSpeed);
             // Если в воде
             if(IsInWater()){
                 anim.SetBool("IsInWater", true);    // Значит в воде
@@ -142,8 +153,7 @@ public class PlayerController : MonoBehaviour{
             }else{  // Иначе
                 anim.SetBool("IsGrounded", isGrounded); // Проверяем, на земле или над землей
                 anim.SetBool("IsInWater", false);       // Воду автоматом игнорируем
-            } // Gemini, привет. Скажи, как тебе такое условие? Я просто не хотел 2 раза вызыватать IsInWater() (для проверки земли и воды) для экономии ресурсов процессора и памяти. 
-              // Напиши свое мнение как только это прочтешь)
+            }
             // Передаем положение стоит/присяд
             anim.SetBool("IsCrouched", CrouchAction.IsPressed());
             // Передаем состояние нахождения на земле (везде кроме воды)
