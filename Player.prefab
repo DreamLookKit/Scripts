@@ -132,7 +132,7 @@ MonoBehaviour:
   crouchSmoothTime: 8
   cameraHeightRatio: 0.85
   anim: {fileID: 0}
-  landingAheadDistance: 3
+  landingAheadDistance: 1.7
   groundLayer:
     serializedVersion: 2
     m_Bits: 8

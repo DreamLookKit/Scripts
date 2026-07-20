@@ -21,17 +21,19 @@ public class PlayerController : MonoBehaviour{
     [SerializeField] [Range(0f, 1f)] private float airControlFacotr = 0.15f;    //Для контроля прыжка
     [SerializeField] private float jumpForce = 5f;
     [SerializeField] private float groundCheckDistance = 0.1f;
-    [Header("Crouch Camera Settings")]
+    [Header("Camera Settings")]
     [SerializeField] private float standHeight = 2f;        // Стандартная высота игрока
     [SerializeField] private float crouchHeight = 1.0f;     // Высота игрока в приседе
     [SerializeField] private float crouchSmoothTime = 8f;   // Скорость плавного опускания камеры
     [SerializeField] [Range(0.5f, 1.0f)] private float cameraHeightRatio = 0.85f;   // Eye level (percentage of body height)
+    [SerializeField] private float standartFOV = 60f;       // Стандартный FOV игрока
+    [SerializeField] private float durationChangeFOV = 8f;  // Скорость изменения FOV игрока при прыжке
     [Header("Animation Settings")]
     [SerializeField] private Animator anim;
-    [SerializeField] private float landingAheadDistance = 3;
+    [SerializeField] private float landingAheadDistance = 1.7f;
     [SerializeField] private LayerMask groundLayer;
     [Header("References")]
-    [SerializeField] private Transform playerCamera;
+    [SerializeField] private Camera playerCamera;
     private float defaultY = 0f;
     private float timer = 0f;
     // Мы делаем ссылки на действия публичными, чтобы скрипт меню настроек мог получить к ним доступ
@@ -82,13 +84,13 @@ public class PlayerController : MonoBehaviour{
         capsuleCollider = GetComponent<CapsuleCollider>();      // Поиск нашего коллайдера
         buoyantScript = GetComponent<BuoyantObject>();          // Поиск плавучести
         rb.interpolation = RigidbodyInterpolation.Interpolate;  
+        isLanded = false;                                       // По умолчанию ставим false - приземления не было
         // Ищем аниматор на дочерней 3D-модели
         anim = GetComponentInChildren<Animator>();
         // Автоматически находим камеру среди дочерних объектов, если она не была перетащена в Инспектор
         if(playerCamera == null){
-            Camera childCamera = GetComponentInChildren<Camera>();
-            if(childCamera != null) playerCamera = childCamera.transform; 
-            defaultY = playerCamera.localPosition.y;            // Записываем ссылку на камеру
+            playerCamera = GetComponentInChildren<Camera>();
+            defaultY = playerCamera.transform.localPosition.y;            // Записываем ссылку на камеру
         }
         // Блокируем курсор мыши в центре экрана, чтобы он не покидал окно игры
         Cursor.lockState = CursorLockMode.Locked; 
@@ -105,7 +107,7 @@ public class PlayerController : MonoBehaviour{
             // Наклоняем камеру вверх и вниз
             // Насколько наклонить камеру, отняв координапты мыши за текущий кадр, ограничив 85 градусами
             cameraRotationX = Mathf.Clamp(cameraRotationX - mouseDelta.y, -85f, 85f); // Насколько сдвинуть камеру, отняв координапты мыши за текущий кадр, ограничив 85 градусами
-            playerCamera.localRotation = Quaternion.Euler(cameraRotationX, 0f, 0f);
+            playerCamera.transform.localRotation = Quaternion.Euler(cameraRotationX, 0f, 0f);
         }
         isGrounded = Physics.Raycast(GetObjectBottom(), Vector3.down, groundCheckDistance, groundLayer, QueryTriggerInteraction.Ignore);
         Debug.DrawRay(GetObjectBottom(), Vector3.down * groundCheckDistance, isGrounded ? Color.green : Color.red);
@@ -162,9 +164,9 @@ public class PlayerController : MonoBehaviour{
             float currentAmount = speed > 0.1f ? breathAmplitude * 2f : breathAmplitude;
             timer += Time.deltaTime * currentSpeed;
             // Сдвигаем камеру по синусоиде вверх-вниз относительно дефолтной высоты
-            Vector3 newPos = playerCamera.localPosition;
+            Vector3 newPos = playerCamera.transform.localPosition;
             newPos.y = defaultY + Mathf.Sin(timer) * currentAmount;
-            playerCamera.localPosition = newPos;
+            playerCamera.transform.localPosition = newPos;
         }
     }
     // Физическая сила всегда применяется в FixedUpdate (50 раз всекунду)
