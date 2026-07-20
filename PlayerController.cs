@@ -132,7 +132,7 @@ public class PlayerController : MonoBehaviour{
             Vector3 horizontalVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
             // Передаем скорость и флаг воды в параметры аниматора
             if(CrouchAction.IsPressed())
-                anim.SetFloat("Speed", horizontalVelocity.magnitude, 0.1f, Time.deltaTime);
+                anim.SetFloat("Speed", horizontalVelocity.magnitude, 0.1f, Time.deltaTime); //Снижаем изменение Speed для плавного вставания модельки
             else
                 anim.SetFloat("Speed", horizontalVelocity.magnitude);
             // Если в воде
