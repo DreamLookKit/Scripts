@@ -36,6 +36,7 @@ public class PlayerController : MonoBehaviour{
     [SerializeField] private Camera playerCamera;
     private float defaultY = 0f;
     private float timer = 0f;
+    private float currentAnimSpeed = 0f;
     // Мы делаем ссылки на действия публичными, чтобы скрипт меню настроек мог получить к ним доступ
     public InputAction MoveAction { get; private set; }
     public InputAction LookAction { get; private set; }
@@ -130,22 +131,11 @@ public class PlayerController : MonoBehaviour{
         if(anim != null){
             // Считаем чисто горизонтальную скорость (без учета прыжков/падения по Y)
             Vector3 horizontalVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
-            
-            
-            // 1. Считаем направление движения относительно взгляда игрока.
-            // Vector3.Dot вернет от 1 (идем строго вперед) до -1 (идем строго назад)
-            float directionSign = Vector3.Dot(horizontalVelocity.normalized, transform.forward);
-
-            // 2. Умножаем чистую скорость на знак направления. 
-            // Если directionSign отрицательный, то и итоговая скорость в аниматор уйдет со знаком минус.
-            float signedSpeed = horizontalVelocity.magnitude * directionSign;
-            
-            
             // Передаем скорость и флаг воды в параметры аниматора
             if(CrouchAction.IsPressed())
-                anim.SetFloat("Speed", signedSpeed, 0.1f, Time.deltaTime); //Снижаем изменение Speed для плавного вставания модельки
+                anim.SetFloat("Speed", horizontalVelocity.magnitude, 0.1f, Time.deltaTime);
             else
-                anim.SetFloat("Speed", signedSpeed);
+                anim.SetFloat("Speed", horizontalVelocity.magnitude);
             // Если в воде
             if(IsInWater()){
                 anim.SetBool("IsInWater", true);    // Значит в воде
