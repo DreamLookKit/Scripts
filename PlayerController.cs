@@ -20,7 +20,7 @@ public class PlayerController : MonoBehaviour{
     [SerializeField] private float deceleration = 14f;
     [SerializeField] [Range(0f, 1f)] private float airControlFacotr = 0.15f;    //Для контроля прыжка
     [SerializeField] private float jumpForce = 5f;
-    [SerializeField] private float groundCheckDistance = 0.4f;
+    [SerializeField] private float groundCheckDistance = 0.1f;
     [Header("Crouch Camera Settings")]
     [SerializeField] private float standHeight = 2f;        // Стандартная высота игрока
     [SerializeField] private float crouchHeight = 1.0f;     // Высота игрока в приседе
@@ -146,6 +146,7 @@ public class PlayerController : MonoBehaviour{
             //if(!IsInWater()) anim.SetBool("IsGrounded", isGrounded);
             if(CheckLandingAhead() && rb.linearVelocity.y < -3f && !IsInWater()){
                 anim.SetTrigger("Landing");
+                anim.SetBool("Test", true);
                 Debug.Log("-Landing Trigger");
             }
         }
