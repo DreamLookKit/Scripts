@@ -47,6 +47,7 @@ public class PlayerController : MonoBehaviour{
     private float cameraRotationX = 0f;
     private float currentCameraY;   // Текущая локальная высота камеры
     private bool isGrounded;
+    private bool isLanded = false;    // Флаг: был ли вызван триггер Landing
     private void Awake(){
         // Создаем действие для обзора мышью
         LookAction = new InputAction("Look", binding: "<Mouse>/delta");
@@ -108,12 +109,13 @@ public class PlayerController : MonoBehaviour{
         }
         isGrounded = Physics.Raycast(GetObjectBottom(), Vector3.down, groundCheckDistance, groundLayer, QueryTriggerInteraction.Ignore);
         Debug.DrawRay(GetObjectBottom(), Vector3.down * groundCheckDistance, isGrounded ? Color.green : Color.red);
-        // Механика прыжка на суше
-        if(JumpAction.WasPressedThisFrame() && isGrounded && !IsInWater()){
+        // Механика прыжка на суше (если на суше, не в воде и не в присяде)
+        if(JumpAction.WasPressedThisFrame() && isGrounded && !IsInWater() && !CrouchAction.IsPressed()){
             rb.AddForce(Vector3.up * jumpForce, ForceMode.VelocityChange);
             if(anim != null){
                 anim.SetTrigger("Jump");
-                Debug.LogWarning("Jump trigger");
+                isLanded = false;
+                Debug.LogWarning("Jump trigger/isLanded reset to 'false'");
             }
         }
         // Пока уберу (Механика прыжка из воды)
@@ -144,10 +146,10 @@ public class PlayerController : MonoBehaviour{
             anim.SetBool("IsCrouched", CrouchAction.IsPressed());
             // Передаем состояние нахождения на земле (везде кроме воды)
             //if(!IsInWater()) anim.SetBool("IsGrounded", isGrounded);
-            if(CheckLandingAhead() && rb.linearVelocity.y < -3f && !IsInWater()){
+            if(CheckLandingAhead() && rb.linearVelocity.y < -3f && !IsInWater() && !isLanded){
                 anim.SetTrigger("Landing");
-                anim.SetBool("Test", true);
-                Debug.Log("-Landing Trigger");
+                isLanded = true;
+                Debug.Log("-Landing Trigger/isLanded is 'true', double Landing is denied");
             }
         }
         // Настраиваем положение камеры, учитывая эффект дыхангия
@@ -251,7 +253,7 @@ public class PlayerController : MonoBehaviour{
         // Просто приподнимаем старт луча на 5 сантиметров вверх внутрь тела, как и раньше
         return new Vector3(worldPos.x, worldPos.y + 0.05f, worldPos.z);
     }
-    // Проверка земли перед приземлением
+    // Проверка земли перед приземлением (если падаем вниз и до земли остается расстояние, допустимое для включение анимации landing)
     private bool CheckLandingAhead(){
         if(isGrounded) return true;
         return Physics.Raycast(transform.position, Vector3.down, landingAheadDistance, groundLayer, QueryTriggerInteraction.Ignore);
