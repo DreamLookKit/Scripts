@@ -129,13 +129,25 @@ public class PlayerController : MonoBehaviour{
         if(!IsInWater())
             HandleCrouch(); 
         if(anim != null){
-            // Считаем чисто горизонтальную скорость (без учета прыжков/падения по Y)
+            // 0. Считаем чисто горизонтальную скорость (без учета прыжков/падения по Y)
             Vector3 horizontalVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
+            // 1. Считаем массу скорости
+            float currentMoveSpeed = horizontalVelocity.magnitude;
+            // 2. ВМЕСТО кнопок смотрим на реальное направление движения персонажа!
+            // Скалярное произведение (Dot Product) покажет, двигаемся мы по направлению взгляда или против него.
+            float directionDot = Vector3.Dot(horizontalVelocity, transform.forward);
+            // Если результат меньше нуля, значит физическое тело движется СПИНОЙ вперед
+            if(directionDot < -0.05f)
+                currentMoveSpeed = -currentMoveSpeed; // Задом идем медленнее
+            /* TEST. Отображение отрицательной скорости в чате. 
+            !Внимание - СПАМИТ СООБЩЕНИЯМИ
+            if(currentMoveSpeed != 0f) Debug.Log(currentMoveSpeed); */
+            
             // Передаем скорость и флаг воды в параметры аниматора
             if(CrouchAction.IsPressed())
-                anim.SetFloat("Speed", horizontalVelocity.magnitude, 0.1f, Time.deltaTime);
+                anim.SetFloat("Speed", currentMoveSpeed, 0.1f, Time.deltaTime);
             else
-                anim.SetFloat("Speed", horizontalVelocity.magnitude);
+                anim.SetFloat("Speed", currentMoveSpeed);
             // Если в воде
             if(IsInWater()){
                 anim.SetBool("IsInWater", true);    // Значит в воде
@@ -195,10 +207,10 @@ public class PlayerController : MonoBehaviour{
             }else if (SprintAction.IsPressed()){
                 currentSpeed = sprintSpeed * 0.5f;         // Спринет в воде - сравнима с со скоростью хотьбы на суше
                 currentRate /= 1.2f; 
-           }else{
+            }else{
                 currentSpeed = walkSpeed * 0.5f; // Обычная скорость в воде 
                 currentRate /= 2.5f;
-           }
+            }
             /* float waterSurfaceY = 0f;
             if (buoyantScript != null && buoyantScript.WaterScript != null)
                 waterSurfaceY = buoyantScript.WaterScript.SurfaceY; */
@@ -219,6 +231,10 @@ public class PlayerController : MonoBehaviour{
                 currentSpeed = sprintSpeed;
             else
                 currentSpeed = walkSpeed;
+        }
+        if (inputVector.y < -0.1f)
+        {
+            currentSpeed *= 0.5f; 
         }
         // Идеальная горизонтальная скорость, которую хочет получить игрок прямо сейчас
         Vector3 normalVelocity = moveDirection * currentSpeed;
