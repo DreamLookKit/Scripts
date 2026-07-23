@@ -113,8 +113,8 @@ public class PlayerController : MonoBehaviour{
         }
         isGrounded = Physics.Raycast(GetObjectBottom(), Vector3.down, groundCheckDistance, groundLayer, QueryTriggerInteraction.Ignore);
         // СБРОС СОСТОЯНИЯ ПРИ КАСАНИИ ЗЕМЛИ
-        if (isGrounded || IsInWater())
-            currentJumpState = JumpState.Grounded;
+/*         if (isGrounded || IsInWater())
+            currentJumpState = JumpState.Grounded; */
         Debug.DrawRay(GetObjectBottom(), Vector3.down * groundCheckDistance, isGrounded ? Color.green : Color.red);
         // Считаем чисто горизонтальную скорость (без учета прыжков/падения по Y)
         Vector3 horizontalVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
@@ -124,28 +124,32 @@ public class PlayerController : MonoBehaviour{
         // ВАЖНО! Вызывать функцию определения присяда ТОЛЬКО ДО настраивания положения камеры
         if(!IsInWater()){
             HandleCrouch(); // Присяд игрока
-            // Механика прыжка на суше (если на суше, не в воде и не в присяде)
-            if (JumpAction.WasPressedThisFrame() 
-            && isGrounded 
-            && !CrouchAction.IsPressed()){
-                rb.AddForce(Vector3.up * jumpForce, ForceMode.VelocityChange);
-                if (anim != null){
-                    if (speed <= walkSpeed){
-                        anim.SetTrigger("Jump");
-                        currentJumpState = JumpState.InNormalJump; // Запомнили, что прыжок обычный
-                        Debug.Log("Jump Initialized");
-                    }else{
-                        anim.SetTrigger("LongJump");
-                        currentJumpState = JumpState.InLongJump; // Запомнили, что прыжок длинный
-                        Debug.Log("LongJump Initialized");
+            // СБРОС СОСТОЯНИЯ ПРИ КАСАНИИ ЗЕМЛИ
+            if(isGrounded){
+                //currentJumpState = JumpState.Grounded;
+                // Механика прыжка на суше (если на суше, не в воде и не в присяде)
+                if (JumpAction.WasPressedThisFrame()  
+                && !CrouchAction.IsPressed()){
+                    rb.AddForce(Vector3.up * jumpForce, ForceMode.VelocityChange);
+                    if (anim != null){
+                        if (speed <= walkSpeed){
+                            anim.SetTrigger("Jump");
+                            currentJumpState = JumpState.InNormalJump; // Запомнили, что прыжок обычный
+                            Debug.Log($"Jump Initialized");
+                        }else{
+                            anim.SetTrigger("LongJump");
+                            currentJumpState = JumpState.InLongJump; // Запомнили, что прыжок длинный
+                            Debug.Log("LongJump Initialized");
+                        }
                     }
                 }
             }
             // Проверяем: мы в воздухе И летим вниз (скорость по Y отрицательная)
             // И мы ЕЩЕ НЕ обрабатывали приземление в этом полете!
-            if (currentJumpState != JumpState.Grounded 
-            && currentJumpState != JumpState.LandingProcessed 
-            && rb.linearVelocity.y < -0.5f){
+            if (rb.linearVelocity.y < -0.1f
+            && currentJumpState != JumpState.Grounded 
+            && currentJumpState != JumpState.LandingProcessed) 
+            {
                 if (CheckLandingAhead()){
                     // Смотрим, из какого прыжка мы летим, и дергаем нужный триггер ОДИН раз
                     if (currentJumpState == JumpState.InNormalJump){
