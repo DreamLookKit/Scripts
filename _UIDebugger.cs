@@ -40,7 +40,7 @@ public class _UIDebugger : MonoBehaviour{
         debugText.text = $"Speed movement (X/Z): {horizontalSpeed:F2}\n" +
                          $"Speed falling (Y): {verticalSpeed:F2}\n" +
                          $"Status Water: {(anim.GetBool("IsInWater") ? "<color=green>Yes</color>" : "<color=white>No</color>")}\n" +
-                         $"Status Ground: {(anim.GetBool("IsGrounded") ? "<color=green>Grounded</color>" : "<color=white>In Air</color>")}\n" +
+                         $"Status Ground: {(anim.GetBool("IsGrounded") ? "<color=green>Grounded</color>" : "<color=white>In Air?</color>")}\n" +
                          $"Status Crouched: {(anim.GetBool("IsCrouched") ? "<color=green>Crouched</color>" : "<color=white>Stand</color>")}";
     }
 }
