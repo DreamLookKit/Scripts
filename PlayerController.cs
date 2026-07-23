@@ -87,10 +87,6 @@ public class PlayerController : MonoBehaviour{
         buoyantScript = GetComponent<BuoyantObject>();          // Поиск плавучести
         rb.interpolation = RigidbodyInterpolation.Interpolate;  
         //Обнуляем все флаги прыжка/приземления
-        isJump = false;
-        islongJump = false;
-        isLanded = false;
-        isLongLanded = false;
         // Ищем аниматор на дочерней 3D-модели
         anim = GetComponentInChildren<Animator>();
         // Автоматически находим камеру среди дочерних объектов, если она не была перетащена в Инспектор
