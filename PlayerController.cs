@@ -7,8 +7,8 @@ using UnityEngine.InputSystem;
 
 public class PlayerController : MonoBehaviour{
     [Header("Breath Settings")]
-    [SerializeField] private float breathSpeed = 5f; // Скорость покачивания при дыхании
-    [SerializeField] private float breathAmplitude = 0.02f; // Амплитуда (насколько сильно качается взгляд)
+    [SerializeField] private float breathSpeed = 5f;          // Скорость покачивания при дыхании
+    [SerializeField] private float breathAmplitude = 0.02f;   // Амплитуда (насколько сильно качается взгляд)
     [Header("Movement Speed Settings")]
     [SerializeField] private float walkSpeed = 2f;
     [SerializeField] private float sprintSpeed = 5f;
@@ -26,8 +26,8 @@ public class PlayerController : MonoBehaviour{
     [SerializeField] private float crouchHeight = 1.0f;     // Высота игрока в приседе
     [SerializeField] private float crouchSmoothTime = 8f;   // Скорость плавного опускания камеры
     [SerializeField] [Range(0.5f, 1.0f)] private float cameraHeightRatio = 0.85f;   // Eye level (percentage of body height)
-    [SerializeField] private float standartFOV = 60f;       // Стандартный FOV игрока
-    [SerializeField] private float durationChangeFOV = 8f;  // Скорость изменения FOV игрока при прыжке
+    //[SerializeField] private float standartFOV = 60f;       // Стандартный FOV игрока
+    //[SerializeField] private float durationChangeFOV = 8f;  // Скорость изменения FOV игрока при прыжке
     [Header("Animation Settings")]
     [SerializeField] private Animator anim;
     [SerializeField] private float landingAheadDistance = 1.7f;
@@ -36,7 +36,7 @@ public class PlayerController : MonoBehaviour{
     [SerializeField] private Camera playerCamera;
     private float defaultY = 0f;
     private float timer = 0f;
-    private float currentAnimSpeed = 0f;
+    //private float currentAnimSpeed = 0f;
     // Мы делаем ссылки на действия публичными, чтобы скрипт меню настроек мог получить к ним доступ
     public InputAction MoveAction { get; private set; }
     public InputAction LookAction { get; private set; }
@@ -50,7 +50,10 @@ public class PlayerController : MonoBehaviour{
     private float cameraRotationX = 0f;
     private float currentCameraY;   // Текущая локальная высота камеры
     private bool isGrounded;
-    private bool isLanded = false;    // Флаг: был ли вызван триггер Landing
+    private bool isJump = false;
+    private bool islongJump = false;
+    private bool isLanded = false;
+    private bool isLongLanded = false;
     private void Awake(){
         // Создаем действие для обзора мышью
         LookAction = new InputAction("Look", binding: "<Mouse>/delta");
@@ -85,7 +88,11 @@ public class PlayerController : MonoBehaviour{
         capsuleCollider = GetComponent<CapsuleCollider>();      // Поиск нашего коллайдера
         buoyantScript = GetComponent<BuoyantObject>();          // Поиск плавучести
         rb.interpolation = RigidbodyInterpolation.Interpolate;  
-        isLanded = false;                                       // По умолчанию ставим false - приземления не было
+        //Обнуляем все флаги прыжка/приземления
+        isJump = false;
+        islongJump = false;
+        isLanded = false;
+        isLongLanded = false;
         // Ищем аниматор на дочерней 3D-модели
         anim = GetComponentInChildren<Animator>();
         // Автоматически находим камеру среди дочерних объектов, если она не была перетащена в Инспектор
@@ -112,68 +119,80 @@ public class PlayerController : MonoBehaviour{
         }
         isGrounded = Physics.Raycast(GetObjectBottom(), Vector3.down, groundCheckDistance, groundLayer, QueryTriggerInteraction.Ignore);
         Debug.DrawRay(GetObjectBottom(), Vector3.down * groundCheckDistance, isGrounded ? Color.green : Color.red);
+        // Считаем чисто горизонтальную скорость (без учета прыжков/падения по Y)
+        Vector3 horizontalVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
+        // Считаем скорость путем слолжения векторов (основную скорость)
+        float speed = horizontalVelocity.magnitude;
         // Механика прыжка на суше (если на суше, не в воде и не в присяде)
         if(JumpAction.WasPressedThisFrame() && isGrounded && !IsInWater() && !CrouchAction.IsPressed()){
             rb.AddForce(Vector3.up * jumpForce, ForceMode.VelocityChange);
             if(anim != null){
-                anim.SetTrigger("Jump");
-                isLanded = false;
-                Debug.LogWarning("Jump trigger/isLanded reset to 'false'");
+                if(speed <= walkSpeed){
+                    anim.SetTrigger("Jump");
+                    isJump = true;          // Прыжок
+                    isLanded = false;       // Анимация приземления после прыжка еще не произошла
+                    Debug.Log("Jump");
+                }
+                else{
+                    anim.SetTrigger("LongJump");
+                    islongJump = true;      // Длинный прыжок
+                    isLongLanded = false;   // Анимация приземления после длительного прыжка еще не произошла
+                    Debug.Log("LongJump");
+                }
             }
         }
-        // Пока уберу (Механика прыжка из воды)
-        /* if(JumpAction.WasPressedThisFrame() && IsInWater())
-            rb.AddForce(Vector3.up * (jumpForce * 1.2f), ForceMode.VelocityChange); */
         // Логика изменения высоты коллайдера и камеры (только если мы НЕ в воде)
         // ВАЖНО! Вызывать функцию определения присяда ТОЛЬКО ДО настраивания положения камеры
         if(!IsInWater())
             HandleCrouch(); 
         if(anim != null){
-            // 0. Считаем чисто горизонтальную скорость (без учета прыжков/падения по Y)
-            Vector3 horizontalVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
-            // 1. Считаем массу скорости
-            float currentMoveSpeed = horizontalVelocity.magnitude;
-            // 2. ВМЕСТО кнопок смотрим на реальное направление движения персонажа!
+            // ВМЕСТО кнопок смотрим на реальное направление движения персонажа!
             // Скалярное произведение (Dot Product) покажет, двигаемся мы по направлению взгляда или против него.
             float directionDot = Vector3.Dot(horizontalVelocity, transform.forward);
             // Если результат меньше нуля, значит физическое тело движется СПИНОЙ вперед
             if(directionDot < -0.05f)
-                currentMoveSpeed = -currentMoveSpeed; // Задом идем медленнее
+                speed = -speed; // Задом идем медленнее
             /* TEST. Отображение отрицательной скорости в чате. 
             !Внимание - СПАМИТ СООБЩЕНИЯМИ
             if(currentMoveSpeed != 0f) Debug.Log(currentMoveSpeed); */
             
             // Передаем скорость и флаг воды в параметры аниматора
             if(CrouchAction.IsPressed())
-                anim.SetFloat("Speed", currentMoveSpeed, 0.1f, Time.deltaTime);
+                anim.SetFloat("Speed", speed, 0.1f, Time.deltaTime);
             else
-                anim.SetFloat("Speed", currentMoveSpeed);
+                anim.SetFloat("Speed", speed);
             // Если в воде
             if(IsInWater()){
-                anim.SetBool("IsInWater", true);    // Значит в воде
-                anim.SetBool("IsGrounded", false);  // А землю автоматом игнорируем
+                anim.SetBool("IsInWater", true);        // Указываем что "В воде"
+                anim.SetBool("IsGrounded", false);      // А землю автоматом игнорируем
             }else{  // Иначе
                 anim.SetBool("IsGrounded", isGrounded); // Проверяем, на земле или над землей
                 anim.SetBool("IsInWater", false);       // Воду автоматом игнорируем
             }
             // Передаем положение стоит/присяд
             anim.SetBool("IsCrouched", CrouchAction.IsPressed());
-            // Передаем состояние нахождения на земле (везде кроме воды)
-            //if(!IsInWater()) anim.SetBool("IsGrounded", isGrounded);
-            if(CheckLandingAhead() && rb.linearVelocity.y < -3f && !IsInWater() && !isLanded){
-                anim.SetTrigger("Landing");
-                isLanded = true;
-                Debug.Log("-Landing Trigger/isLanded is 'true', double Landing is denied");
+            // Если до земли определенное расстояние, скорость по оси y отрицательная (падение)
+            // не в воде, еще не приземлялся
+            if(CheckLandingAhead() && rb.linearVelocity.y < -3f && !IsInWater()){
+                if(isJump && !isLanded){
+                    anim.SetTrigger("Landing");
+                    isLanded = true;        // Анимация приземления после прыжка
+                    isJump = false;         // Прыжок закончен
+                    Debug.LogWarning("Landing");
+                }
+                if(islongJump && !isLongLanded){
+                    anim.SetTrigger("LongLanding");
+                    isLongLanded = true;    // Анимация приземления после длительного прыжка
+                    islongJump = false;     // Длинный прыжок закончен
+                    Debug.LogWarning("LongLanding");
+                }
             }
         }
         // Настраиваем положение камеры, учитывая эффект дыхангия
         if(playerCamera != null){
-            // Считаем скорость движения
-            Vector3 horizontalVelocity = new Vector3(rb.linearVelocity.x, 0f,  rb.linearVelocity.z);
-            float speed = horizontalVelocity.magnitude;
             // Если двигаемся, качаем камеру быстрее. Если стоим - это плавное дыхание
-            float currentSpeed = speed > 0.1f ? breathSpeed * 1.5f : breathSpeed;
-            float currentAmount = speed > 0.1f ? breathAmplitude * 2f : breathAmplitude;
+            float currentSpeed = speed > 0.1f ? breathSpeed * speed/2f : breathSpeed;
+            float currentAmount = speed > 0.1f ? breathAmplitude * speed/2f : breathAmplitude;
             timer += Time.deltaTime * currentSpeed;
             // Сдвигаем камеру по синусоиде вверх-вниз относительно дефолтной высоты
             Vector3 newPos = playerCamera.transform.localPosition;

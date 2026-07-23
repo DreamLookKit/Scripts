@@ -50,12 +50,12 @@ public class GameManager : MonoBehaviour{
         }
     }
     private void StartFlooding(){
-        Debug.Log("Water is rising!"); 
+        //Debug.Log("Water is rising!"); 
     }
     private void StartBattle(){
-        Debug.Log("Battle started!"); 
+        //Debug.Log("Battle started!"); 
     }
     private void EndRound(){
-        Debug.Log("Round ended! Cleaning up..."); 
+        //Debug.Log("Round ended! Cleaning up..."); 
     }
 }
