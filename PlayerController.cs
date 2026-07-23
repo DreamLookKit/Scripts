@@ -50,10 +50,8 @@ public class PlayerController : MonoBehaviour{
     private float cameraRotationX = 0f;
     private float currentCameraY;   // Текущая локальная высота камеры
     private bool isGrounded;
-    private bool isJump = false;
-    private bool islongJump = false;
-    private bool isLanded = false;
-    private bool isLongLanded = false;
+    private enum JumpState { Grounded, InNormalJump, InLongJump, LandingProcessed }
+    private JumpState currentJumpState = JumpState.Grounded;
     private void Awake(){
         // Создаем действие для обзора мышью
         LookAction = new InputAction("Look", binding: "<Mouse>/delta");
@@ -118,33 +116,55 @@ public class PlayerController : MonoBehaviour{
             playerCamera.transform.localRotation = Quaternion.Euler(cameraRotationX, 0f, 0f);
         }
         isGrounded = Physics.Raycast(GetObjectBottom(), Vector3.down, groundCheckDistance, groundLayer, QueryTriggerInteraction.Ignore);
+        // СБРОС СОСТОЯНИЯ ПРИ КАСАНИИ ЗЕМЛИ
+        if (isGrounded || IsInWater())
+            currentJumpState = JumpState.Grounded;
         Debug.DrawRay(GetObjectBottom(), Vector3.down * groundCheckDistance, isGrounded ? Color.green : Color.red);
         // Считаем чисто горизонтальную скорость (без учета прыжков/падения по Y)
         Vector3 horizontalVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
         // Считаем скорость путем слолжения векторов (основную скорость)
         float speed = horizontalVelocity.magnitude;
-        // Механика прыжка на суше (если на суше, не в воде и не в присяде)
-        if(JumpAction.WasPressedThisFrame() && isGrounded && !IsInWater() && !CrouchAction.IsPressed()){
-            rb.AddForce(Vector3.up * jumpForce, ForceMode.VelocityChange);
-            if(anim != null){
-                if(speed <= walkSpeed){
-                    anim.SetTrigger("Jump");
-                    isJump = true;          // Прыжок
-                    isLanded = false;       // Анимация приземления после прыжка еще не произошла
-                    Debug.Log("Jump");
+        // Логика изменения высоты коллайдера и камеры (только если мы НЕ в воде)
+        // ВАЖНО! Вызывать функцию определения присяда ТОЛЬКО ДО настраивания положения камеры
+        if(!IsInWater()){
+            HandleCrouch(); // Присяд игрока
+            // Механика прыжка на суше (если на суше, не в воде и не в присяде)
+            if (JumpAction.WasPressedThisFrame() 
+            && isGrounded 
+            && !CrouchAction.IsPressed()){
+                rb.AddForce(Vector3.up * jumpForce, ForceMode.VelocityChange);
+                if (anim != null){
+                    if (speed <= walkSpeed){
+                        anim.SetTrigger("Jump");
+                        currentJumpState = JumpState.InNormalJump; // Запомнили, что прыжок обычный
+                        Debug.Log("Jump Initialized");
+                    }else{
+                        anim.SetTrigger("LongJump");
+                        currentJumpState = JumpState.InLongJump; // Запомнили, что прыжок длинный
+                        Debug.Log("LongJump Initialized");
+                    }
                 }
-                else{
-                    anim.SetTrigger("LongJump");
-                    islongJump = true;      // Длинный прыжок
-                    isLongLanded = false;   // Анимация приземления после длительного прыжка еще не произошла
-                    Debug.Log("LongJump");
+            }
+            // Проверяем: мы в воздухе И летим вниз (скорость по Y отрицательная)
+            // И мы ЕЩЕ НЕ обрабатывали приземление в этом полете!
+            if (currentJumpState != JumpState.Grounded 
+            && currentJumpState != JumpState.LandingProcessed 
+            && rb.linearVelocity.y < -0.5f){
+                if (CheckLandingAhead()){
+                    // Смотрим, из какого прыжка мы летим, и дергаем нужный триггер ОДИН раз
+                    if (currentJumpState == JumpState.InNormalJump){
+                        anim.SetTrigger("Landing");
+                        Debug.LogWarning("Normal Landing Triggered!");
+                    }else if (currentJumpState == JumpState.InLongJump){
+                        anim.SetTrigger("LongLanding");
+                        Debug.LogWarning("Long Landing Triggered!");
+                    }
+                    // БЛОКИРОВКА: переводим в стейт "Приземление обработано", 
+                    // чтобы на следующем кадре этот if больше не сработал!
+                    currentJumpState = JumpState.LandingProcessed;
                 }
             }
         }
-        // Логика изменения высоты коллайдера и камеры (только если мы НЕ в воде)
-        // ВАЖНО! Вызывать функцию определения присяда ТОЛЬКО ДО настраивания положения камеры
-        if(!IsInWater())
-            HandleCrouch(); 
         if(anim != null){
             // ВМЕСТО кнопок смотрим на реальное направление движения персонажа!
             // Скалярное произведение (Dot Product) покажет, двигаемся мы по направлению взгляда или против него.
@@ -171,22 +191,6 @@ public class PlayerController : MonoBehaviour{
             }
             // Передаем положение стоит/присяд
             anim.SetBool("IsCrouched", CrouchAction.IsPressed());
-            // Если до земли определенное расстояние, скорость по оси y отрицательная (падение)
-            // не в воде, еще не приземлялся
-            if(CheckLandingAhead() && rb.linearVelocity.y < -3f && !IsInWater()){
-                if(isJump && !isLanded){
-                    anim.SetTrigger("Landing");
-                    isLanded = true;        // Анимация приземления после прыжка
-                    isJump = false;         // Прыжок закончен
-                    Debug.LogWarning("Landing");
-                }
-                if(islongJump && !isLongLanded){
-                    anim.SetTrigger("LongLanding");
-                    isLongLanded = true;    // Анимация приземления после длительного прыжка
-                    islongJump = false;     // Длинный прыжок закончен
-                    Debug.LogWarning("LongLanding");
-                }
-            }
         }
         // Настраиваем положение камеры, учитывая эффект дыхангия
         if(playerCamera != null){
